@@ -29,7 +29,7 @@ export function Navbar() {
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-4xl"
+      className="fixed top-4 inset-x-0 mx-auto z-50 w-[92%] max-w-3xl"
     >
       <nav
         className={`glass rounded-full px-4 py-2 flex items-center justify-between transition-all duration-300 ${
