@@ -82,4 +82,51 @@
       radial-gradient(ellipse at 80% 20%, hsl(var(--glow-secondary) / 0.06) 0%, transparent 50%),
       radial-gradient(ellipse at 50% 80%, hsl(var(--glow-primary) / 0.04) 0%, transparent 50%);
   }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
+
+/* Custom minimal scrollbar — matches dark glass UI */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(220 15% 25%) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: hsl(220 15% 25%);
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  transition: background-color 0.2s;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(220 15% 35%);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Make scrollbar invisible when not scrolling (shows on hover) */
+.glass::-webkit-scrollbar-thumb {
+  background-color: hsl(220 15% 20%);
+}
+
+.glass:hover::-webkit-scrollbar-thumb {
+  background-color: hsl(220 15% 30%);
+}
+

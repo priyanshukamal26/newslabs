@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String   // Hashed password
+  name      String?
+  createdAt DateTime @default(now())
+  
+  // Preferences
+  topics    String   @default("[]") // JSON string of interested topics
+  
+  // Relations
+  savedArticles SavedArticle[]
+  readHistory   ReadHistory[]
+}
+
+model Feed {
+  id          String   @id @default(uuid())
+  url         String   @unique
+  name        String
+  type        String   // "RSS", "API"
+  lastFetched DateTime @default(now())
+  isActive    Boolean  @default(true)
+}
+
+model Article {
+  id          String   @id @default(uuid())
+  title       String
+  url         String   @unique
+  content     String?  // Raw content (truncated/cleaned)
+  publishedAt DateTime
+  source      String
+  
+  // AI Generated
+  summary     String
+  insights    String   @default("[]") // JSON string of key insights
+  why         String   // "Why this matters"
+  topic       String   // Primary topic
+  timeToRead  String   // e.g., "3 min"
+  
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  savedBy     SavedArticle[]
+  reads       ReadHistory[]
+}
+
+model SavedArticle {
+  userId    String
+  articleId String
+  savedAt   DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id])
+  article   Article  @relation(fields: [articleId], references: [id])
+
+  @@id([userId, articleId])
+}
+
+model ReadHistory {
+  userId    String
+  articleId String
+  readAt    DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id])
+  article   Article  @relation(fields: [articleId], references: [id])
+
+  @@id([userId, articleId])
+}
+
+model Trend {
+  id        String   @id @default(uuid())
+  topic     String
+  score     Float
+  updatedAt DateTime @updatedAt
+}

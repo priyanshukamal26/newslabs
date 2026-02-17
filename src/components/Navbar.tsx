@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { Menu, X, Zap } from "lucide-react";
 import { motion } from "framer-motion";
-import { Zap, Menu, X } from "lucide-react";
+import { useAuth } from "../lib/auth";
 
 const navItems = [
   { label: "Home", path: "/" },
   { label: "Features", path: "/features" },
   { label: "How it Works", path: "/how-it-works" },
-  { label: "Dashboard", path: "/dashboard" },
   { label: "Docs", path: "/docs" },
 ];
 
@@ -15,6 +15,7 @@ export function Navbar() {
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { isAuthenticated, logout } = useAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -32,9 +33,8 @@ export function Navbar() {
       className="fixed top-4 inset-x-0 mx-auto z-50 w-[92%] max-w-3xl"
     >
       <nav
-        className={`glass rounded-full px-4 py-2 flex items-center justify-between transition-all duration-300 ${
-          scrolled ? "py-1.5 shadow-lg shadow-primary/5" : ""
-        }`}
+        className={`glass rounded-full px-4 py-2 flex items-center justify-between transition-all duration-300 ${scrolled ? "py-1.5 shadow-lg shadow-primary/5" : ""
+          }`}
       >
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 shrink-0">
@@ -50,11 +50,10 @@ export function Navbar() {
             <Link
               key={item.path}
               to={item.path}
-              className={`relative px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
-                activeIndex === i
-                  ? "text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={`relative px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${activeIndex === i
+                ? "text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
+                }`}
             >
               {activeIndex === i && (
                 <motion.span
@@ -66,16 +65,36 @@ export function Navbar() {
               <span className="relative z-10">{item.label}</span>
             </Link>
           ))}
+          {isAuthenticated && (
+            <Link
+              to="/dashboard"
+              className={`relative px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${location.pathname === "/dashboard"
+                ? "text-primary-foreground bg-primary"
+                : "text-muted-foreground hover:text-foreground"
+                }`}
+            >
+              Dashboard
+            </Link>
+          )}
         </div>
 
         {/* CTA */}
         <div className="hidden md:block">
-          <Link
-            to="/auth"
-            className="px-4 py-1.5 text-xs font-semibold rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
-          >
-            Get Started
-          </Link>
+          {isAuthenticated ? (
+            <button
+              onClick={logout}
+              className="px-4 py-1.5 text-xs font-semibold rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+            >
+              Sign Out
+            </button>
+          ) : (
+            <Link
+              to="/auth"
+              className="px-4 py-1.5 text-xs font-semibold rounded-full bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+            >
+              Get Started
+            </Link>
+          )}
         </div>
 
         {/* Mobile toggle */}
@@ -99,22 +118,43 @@ export function Navbar() {
               key={item.path}
               to={item.path}
               onClick={() => setMobileOpen(false)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                location.pathname === item.path
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${location.pathname === item.path
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                }`}
             >
               {item.label}
             </Link>
           ))}
-          <Link
-            to="/auth"
-            onClick={() => setMobileOpen(false)}
-            className="px-4 py-2 rounded-lg text-sm font-semibold bg-primary text-primary-foreground text-center mt-1"
-          >
-            Get Started
-          </Link>
+          {isAuthenticated && (
+            <Link
+              to="/dashboard"
+              onClick={() => setMobileOpen(false)}
+              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
+            >
+              Dashboard
+            </Link>
+          )}
+
+          {isAuthenticated ? (
+            <button
+              onClick={() => {
+                logout();
+                setMobileOpen(false);
+              }}
+              className="px-4 py-2 rounded-lg text-sm font-semibold bg-primary/10 text-primary text-center mt-1"
+            >
+              Sign Out
+            </button>
+          ) : (
+            <Link
+              to="/auth"
+              onClick={() => setMobileOpen(false)}
+              className="px-4 py-2 rounded-lg text-sm font-semibold bg-primary text-primary-foreground text-center mt-1"
+            >
+              Get Started
+            </Link>
+          )}
         </motion.div>
       )}
     </motion.header>
