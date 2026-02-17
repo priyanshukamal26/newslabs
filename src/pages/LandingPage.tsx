@@ -62,7 +62,7 @@ function HeroSection() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10"
         >
-          AutoDigest.AI reads hundreds of articles so you don't have to.
+          NewsLabs reads hundreds of articles so you don't have to.
           Smart curation from legal, ethical sources — delivered to your inbox.
         </motion.p>
 
@@ -111,14 +111,14 @@ function NewsletterPreview() {
             Your Daily <span className="text-gradient">Digest</span>, Previewed
           </motion.h2>
           <motion.p variants={fadeUp} custom={1} className="text-muted-foreground max-w-lg mx-auto">
-            Here's what a typical AutoDigest newsletter looks like — smart, concise, actionable.
+            Here's what a typical NewsLabs newsletter looks like — smart, concise, actionable.
           </motion.p>
         </motion.div>
 
         <div className="glass rounded-2xl p-6 md:p-8 max-w-2xl mx-auto">
           <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border">
             <Zap className="h-5 w-5 text-primary" />
-            <span className="font-semibold text-sm">AutoDigest.AI — Today's Brief</span>
+            <span className="font-semibold text-sm">NewsLabs — Today's Brief</span>
             <span className="ml-auto text-xs text-muted-foreground">Feb 15, 2026</span>
           </div>
           <div className="space-y-4">
@@ -244,7 +244,7 @@ function Footer() {
       <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <Zap className="h-4 w-4 text-primary" />
-          <span className="text-sm font-semibold">AutoDigest<span className="text-primary">.AI</span></span>
+          <span className="text-sm font-semibold">NewsLabs</span>
         </div>
         <div className="flex gap-6 text-xs text-muted-foreground">
           <Link to="/features" className="hover:text-foreground transition-colors">Features</Link>
@@ -252,7 +252,7 @@ function Footer() {
           <Link to="/docs" className="hover:text-foreground transition-colors">Docs</Link>
           <Link to="/auth" className="hover:text-foreground transition-colors">Sign In</Link>
         </div>
-        <p className="text-xs text-muted-foreground">© 2026 AutoDigest.AI. All rights reserved.</p>
+        <p className="text-xs text-muted-foreground">© 2026 NewsLabs. All rights reserved.</p>
       </div>
     </footer>
   );

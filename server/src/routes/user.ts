@@ -163,6 +163,7 @@ export async function userRoutes(server: FastifyInstance) {
     server.post('/like/:articleId', { preHandler: requireAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
         const userId = (request as any).userId;
         const { articleId } = request.params as { articleId: string };
+        const bodyData = (request.body as any) || {};
 
         const existing = await prisma.likedArticle.findFirst({
             where: { userId, articleId }
@@ -179,13 +180,13 @@ export async function userRoutes(server: FastifyInstance) {
                 data: {
                     userId,
                     articleId,
-                    title: article?.title || '',
-                    source: article?.source || '',
-                    topic: article?.topic || '',
-                    link: article?.link || '',
-                    summary: article?.summary || '',
-                    timeToRead: article?.timeToRead || '',
-                    pubDate: article?.pubDate || '',
+                    title: bodyData.title || article?.title || '',
+                    source: bodyData.source || article?.source || '',
+                    topic: bodyData.topic || article?.topic || '',
+                    link: bodyData.link || article?.link || '',
+                    summary: bodyData.summary || article?.summary || '',
+                    timeToRead: bodyData.timeToRead || article?.timeToRead || '',
+                    pubDate: bodyData.pubDate || article?.pubDate || '',
                 }
             });
             if (article) store.updateArticle(articleId, { likes: (article.likes || 0) + 1 });
@@ -197,6 +198,7 @@ export async function userRoutes(server: FastifyInstance) {
     server.post('/save/:articleId', { preHandler: requireAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
         const userId = (request as any).userId;
         const { articleId } = request.params as { articleId: string };
+        const bodyData = (request.body as any) || {};
 
         const existing = await prisma.savedArticle.findFirst({
             where: { userId, articleId }
@@ -211,13 +213,13 @@ export async function userRoutes(server: FastifyInstance) {
                 data: {
                     userId,
                     articleId,
-                    title: article?.title || '',
-                    source: article?.source || '',
-                    topic: article?.topic || '',
-                    link: article?.link || '',
-                    summary: article?.summary || '',
-                    timeToRead: article?.timeToRead || '',
-                    pubDate: article?.pubDate || '',
+                    title: bodyData.title || article?.title || '',
+                    source: bodyData.source || article?.source || '',
+                    topic: bodyData.topic || article?.topic || '',
+                    link: bodyData.link || article?.link || '',
+                    summary: bodyData.summary || article?.summary || '',
+                    timeToRead: bodyData.timeToRead || article?.timeToRead || '',
+                    pubDate: bodyData.pubDate || article?.pubDate || '',
                 }
             });
             return { saved: true, message: 'Saved to reading list' };

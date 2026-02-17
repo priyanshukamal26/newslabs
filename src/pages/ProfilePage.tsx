@@ -277,52 +277,46 @@ export default function ProfilePage() {
                             </p>
                         ) : (
                             (activeTab === "liked" ? likedArticles : savedArticles).map((article: any) => (
-                                <div key={article.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-muted/30 transition-colors group">
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                            <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                                <div key={article.id} className="group flex items-start gap-3 p-3 rounded-xl hover:bg-muted/30 transition-colors border border-transparent hover:border-border/50">
+                                    <a
+                                        href={article.link || '#'}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex-1 min-w-0 block cursor-pointer"
+                                    >
+                                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                                            <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                                                 {article.topic || "News"}
                                             </span>
                                             <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                                                 <Clock className="h-3 w-3" /> {article.timeToRead || "3 min"}
                                             </span>
                                             {article.source && (
-                                                <span className="text-[10px] text-muted-foreground">· {article.source}</span>
+                                                <span className="text-[10px] text-muted-foreground font-medium">· {article.source}</span>
                                             )}
                                         </div>
-                                        <h4 className="text-sm font-medium line-clamp-2 mb-0.5">
-                                            {article.title || <span className="italic text-muted-foreground">Untitled article</span>}
+                                        <h4 className="text-sm font-semibold line-clamp-2 mb-1 group-hover:text-primary transition-colors">
+                                            {(article.title && article.title.trim()) || <span className="italic text-muted-foreground font-normal">Untitled article</span>}
                                         </h4>
                                         {article.summary && article.summary !== "Click to analyze" && (
-                                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{article.summary}</p>
+                                            <p className="text-xs text-muted-foreground line-clamp-1">{article.summary}</p>
                                         )}
-                                    </div>
-                                    <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        {article.link && (
-                                            <a
-                                                href={article.link}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="p-1.5 rounded-lg text-muted-foreground hover:text-primary transition-colors"
-                                                title="Open article"
-                                            >
-                                                <ExternalLink className="h-3.5 w-3.5" />
-                                            </a>
-                                        )}
-                                        <button
-                                            onClick={() => {
-                                                if (activeTab === "liked") {
-                                                    unlikeMutation.mutate(article.id);
-                                                } else {
-                                                    unsaveMutation.mutate(article.id);
-                                                }
-                                            }}
-                                            className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 transition-colors"
-                                            title={activeTab === "liked" ? "Remove from liked" : "Remove from saved"}
-                                        >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </button>
-                                    </div>
+                                    </a>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            e.preventDefault();
+                                            if (activeTab === "liked") {
+                                                unlikeMutation.mutate(article.id);
+                                            } else {
+                                                unsaveMutation.mutate(article.id);
+                                            }
+                                        }}
+                                        className="shrink-0 p-2 rounded-lg text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-all self-start mt-1"
+                                        title={activeTab === "liked" ? "Remove from liked" : "Remove from saved"}
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
                                 </div>
                             ))
                         )}

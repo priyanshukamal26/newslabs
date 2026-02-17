@@ -19,7 +19,7 @@ const features = [
   { icon: Bell, title: "Smart Notifications", desc: "Get notified only about content that matches your priority topics.", category: "Output" },
   { icon: Shield, title: "Compliance & Ethics", desc: "Built on open standards. No web scraping. Full transparency.", category: "Trust" },
   { icon: Globe, title: "Multi-Language Support", desc: "Curate and summarize content across multiple languages.", category: "Processing" },
-  { icon: KeyRound, title: "API Access", desc: "Integrate AutoDigest into your own tools with our developer API.", category: "Developer" },
+  { icon: KeyRound, title: "API Access", desc: "Integrate NewsLabs into your own tools with our developer API.", category: "Developer" },
   { icon: Cpu, title: "Fully Automated", desc: "Set your preferences once. Your digest is generated and delivered daily.", category: "Output" },
   { icon: Palette, title: "Custom Branding", desc: "White-label your newsletters with your own brand and style.", category: "Output" },
 ];

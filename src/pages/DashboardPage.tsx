@@ -213,7 +213,7 @@ export default function DashboardPage() {
   });
 
   const likeMutation = useMutation({
-    mutationFn: likeArticle,
+    mutationFn: ({ id, data }: { id: string, data?: any }) => likeArticle(id, data),
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['interactions'] });
       queryClient.invalidateQueries({ queryKey: ['feed'] });
@@ -230,7 +230,7 @@ export default function DashboardPage() {
   });
 
   const saveMutation = useMutation({
-    mutationFn: saveArticle,
+    mutationFn: ({ id, data }: { id: string, data?: any }) => saveArticle(id, data),
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['interactions'] });
       queryClient.invalidateQueries({ queryKey: ['saved-articles'] });
@@ -269,22 +269,22 @@ export default function DashboardPage() {
     }
   };
 
-  const handleLike = (e: React.MouseEvent, articleId: string) => {
+  const handleLike = (e: React.MouseEvent, article: Article) => {
     e.stopPropagation();
     if (!isAuthenticated) {
       toast.error("Please log in to like articles");
       return;
     }
-    likeMutation.mutate(articleId);
+    likeMutation.mutate({ id: article.id, data: article });
   };
 
-  const handleSave = (e: React.MouseEvent, articleId: string) => {
+  const handleSave = (e: React.MouseEvent, article: Article) => {
     e.stopPropagation();
     if (!isAuthenticated) {
       toast.error("Please log in to save articles");
       return;
     }
-    saveMutation.mutate(articleId);
+    saveMutation.mutate({ id: article.id, data: article });
   };
 
   const handleShare = async (e: React.MouseEvent, article: Article) => {
@@ -523,7 +523,7 @@ export default function DashboardPage() {
                           </p>
                         </a>
                         <button
-                          onClick={() => saveMutation.mutate(a.id)}
+                          onClick={() => saveMutation.mutate({ id: a.id, data: {} })}
                           className="shrink-0 p-1 rounded text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
                           title="Remove from saved"
                         >
@@ -770,7 +770,7 @@ export default function DashboardPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
                           <button
-                            onClick={(e) => handleLike(e, article.id)}
+                            onClick={(e) => handleLike(e, article)}
                             className={`flex items-center gap-1 transition-all ${isLiked(article.id) ? 'text-red-500 scale-110' : 'hover:text-red-400'}`}
                           >
                             <Heart className={`h-3.5 w-3.5 ${isLiked(article.id) ? 'fill-current' : ''}`} /> {article.likes || 0}
@@ -782,7 +782,7 @@ export default function DashboardPage() {
                             <Share2 className="h-3 w-3" /> Share
                           </button>
                           <button
-                            onClick={(e) => handleSave(e, article.id)}
+                            onClick={(e) => handleSave(e, article)}
                             className={`flex items-center gap-1 transition-all ${isSaved(article.id) ? 'text-primary scale-110' : 'hover:text-primary'}`}
                           >
                             <Bookmark className={`h-3.5 w-3.5 ${isSaved(article.id) ? 'fill-current' : ''}`} /> {isSaved(article.id) ? 'Saved' : 'Save'}
@@ -879,13 +879,13 @@ export default function DashboardPage() {
               <div className="flex items-center gap-4 text-xs text-muted-foreground mb-5 pb-4 border-b border-border">
                 <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {selectedArticle.timeToRead || selectedArticle.time || "3 min"} read</span>
                 <button
-                  onClick={(e) => handleLike(e, selectedArticle.id)}
+                  onClick={(e) => handleLike(e, selectedArticle)}
                   className={`flex items-center gap-1 transition-all ${isLiked(selectedArticle.id) ? 'text-red-500' : 'hover:text-red-400'}`}
                 >
                   <Heart className={`h-3.5 w-3.5 ${isLiked(selectedArticle.id) ? 'fill-current' : ''}`} /> {selectedArticle.likes || 0}
                 </button>
                 <button
-                  onClick={(e) => handleSave(e, selectedArticle.id)}
+                  onClick={(e) => handleSave(e, selectedArticle)}
                   className={`flex items-center gap-1 transition-all ${isSaved(selectedArticle.id) ? 'text-primary' : 'hover:text-primary'}`}
                 >
                   <Bookmark className={`h-3.5 w-3.5 ${isSaved(selectedArticle.id) ? 'fill-current' : ''}`} /> {isSaved(selectedArticle.id) ? 'Saved' : 'Save'}
@@ -974,7 +974,7 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between pt-3 border-t border-border">
                   <div className="flex items-center gap-3">
                     <button
-                      onClick={(e) => handleSave(e, selectedArticle.id)}
+                      onClick={(e) => handleSave(e, selectedArticle)}
                       className={`flex items-center gap-1.5 text-xs transition-all ${isSaved(selectedArticle.id) ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
                     >
                       <Bookmark className={`h-3.5 w-3.5 ${isSaved(selectedArticle.id) ? 'fill-current' : ''}`} />

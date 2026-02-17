@@ -47,14 +47,14 @@ export const getUserStats = async () => {
 };
 
 // Like/unlike
-export const likeArticle = async (articleId: string) => {
-    const { data } = await api.post(`/user/like/${articleId}`, {});
+export const likeArticle = async (articleId: string, articleData?: any) => {
+    const { data } = await api.post(`/user/like/${articleId}`, articleData || {});
     return data;
 };
 
 // Save/unsave
-export const saveArticle = async (articleId: string) => {
-    const { data } = await api.post(`/user/save/${articleId}`, {});
+export const saveArticle = async (articleId: string, articleData?: any) => {
+    const { data } = await api.post(`/user/save/${articleId}`, articleData || {});
     return data;
 };
 

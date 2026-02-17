@@ -5,7 +5,7 @@ const sections = [
   {
     icon: Rss,
     title: "Legal Sources Only",
-    content: "AutoDigest.AI exclusively uses RSS feeds and official public APIs to aggregate content. We never scrape websites, bypass paywalls, or access content without authorization. Every piece of content in your digest comes from sources that explicitly provide feeds for public consumption.",
+    content: "NewsLabs exclusively uses RSS feeds and official public APIs to aggregate content. We never scrape websites, bypass paywalls, or access content without authorization. Every piece of content in your digest comes from sources that explicitly provide feeds for public consumption.",
   },
   {
     icon: Shield,

@@ -149,7 +149,7 @@ export default function AuthPage() {
           </div>
           <h2 className="text-3xl font-bold mb-4">Smart News Intelligence</h2>
           <p className="text-muted-foreground leading-relaxed">
-            AutoDigest curates, summarizes, and analyzes thousands of sources to deliver only the insights that matter to you.
+            NewsLabs curates, summarizes, and analyzes thousands of sources to deliver only the insights that matter to you.
           </p>
         </div>
       </div>

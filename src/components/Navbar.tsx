@@ -39,8 +39,8 @@ export function Navbar() {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 shrink-0">
           <Zap className="h-5 w-5 text-primary" />
-          <span className="font-bold text-sm tracking-tight text-foreground">
-            AutoDigest<span className="text-primary">.AI</span>
+          <span className="font-bold text-lg tracking-tight text-foreground">
+            NewsLabs
           </span>
         </Link>
 
