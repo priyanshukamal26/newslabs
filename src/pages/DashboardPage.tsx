@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   TrendingUp, BookOpen, Clock, Sparkles, X, ExternalLink, Flame, Hash,
   ChevronRight, BarChart3, Bookmark, Bell, Search,
   Zap, Filter, LayoutGrid, List,
-  Share2, RefreshCw, Heart, Check, ChevronDown, Loader2, Settings
+  Share2, RefreshCw, Heart, Check, ChevronDown, Loader2, Settings, HelpCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -25,6 +25,14 @@ type SortMode = "newest" | "oldest" | "most-liked" | "reading-time";
 
 const ARTICLES_PER_PAGE_OPTIONS = [15, 30, 50];
 const DEFAULT_PER_PAGE = 30;
+const AI_COOLDOWN_MS = 60000; // 60-second cooldown between AI calls
+
+// Robust date parser: returns timestamp for sorting, puts invalid/missing dates last
+function parseDateSafe(dateStr?: string): number {
+  if (!dateStr) return 0;
+  const ts = new Date(dateStr).getTime();
+  return isNaN(ts) ? 0 : ts;
+}
 
 // Helper: format how long ago an article was fetched
 function timeAgo(dateStr?: string): string {
@@ -73,6 +81,10 @@ export default function DashboardPage() {
     const saved = localStorage.getItem('newslab_perPage');
     return saved ? parseInt(saved) : DEFAULT_PER_PAGE;
   });
+  // AI cooldown state
+  const [aiCooldownEnd, setAiCooldownEnd] = useState<number>(0);
+  const [aiCooldownLeft, setAiCooldownLeft] = useState<number>(0);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { user, updateUser, isAuthenticated } = useAuth();
 
   const { data: interactions, refetch: refetchInteractions } = useQuery({
@@ -115,21 +127,50 @@ export default function DashboardPage() {
 
   const queryClient = useQueryClient();
 
+  // Cooldown timer tick
+  useEffect(() => {
+    if (aiCooldownEnd <= Date.now()) {
+      setAiCooldownLeft(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, aiCooldownEnd - Date.now());
+      setAiCooldownLeft(remaining);
+      if (remaining <= 0) clearInterval(interval);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [aiCooldownEnd]);
+
   // Auto-analyze when opening an article
   useEffect(() => {
     if (selectedArticle && selectedArticle.summary === "Click to analyze") {
       if (isAuthenticated) {
-        const readTime = parseInt(selectedArticle.timeToRead || '3');
         recordRead(selectedArticle.id).catch(() => { });
         queryClient.invalidateQueries({ queryKey: ['user-stats'] });
       }
+
+      // Check cooldown
+      const now = Date.now();
+      if (aiCooldownEnd > now) {
+        const secs = Math.ceil((aiCooldownEnd - now) / 1000);
+        toast.error(`AI is cooling down — please wait ${secs}s before analyzing another article.`, { duration: 3000 });
+        return;
+      }
+
+      setIsAnalyzing(true);
       analyzeArticle(selectedArticle.id).then(analyzed => {
         setSelectedArticle(analyzed);
         queryClient.setQueryData(['feed'], (oldArticles: Article[] | undefined) => {
           return oldArticles?.map(a => a.id === analyzed.id ? analyzed : a);
         });
+        // Start cooldown after successful analysis
+        setAiCooldownEnd(Date.now() + AI_COOLDOWN_MS);
+        setAiCooldownLeft(AI_COOLDOWN_MS);
       }).catch(err => {
         console.error("Analysis failed:", err);
+        toast.error("Summary took too long — tap the article again to retry.", { duration: 4000 });
+      }).finally(() => {
+        setIsAnalyzing(false);
       });
     } else if (selectedArticle && isAuthenticated) {
       recordRead(selectedArticle.id).catch(() => { });
@@ -274,11 +315,23 @@ export default function DashboardPage() {
     )
     .sort((a, b) => {
       switch (sortMode) {
-        case "oldest": return new Date(a.pubDate || 0).getTime() - new Date(b.pubDate || 0).getTime();
+        case "oldest": {
+          const ta = parseDateSafe(a.pubDate), tb = parseDateSafe(b.pubDate);
+          if (!ta && !tb) return 0;
+          if (!ta) return 1; // no date → end
+          if (!tb) return -1;
+          return ta - tb;
+        }
         case "most-liked": return (b.likes || 0) - (a.likes || 0);
         case "reading-time": return parseInt(a.timeToRead || "99") - parseInt(b.timeToRead || "99");
         case "newest":
-        default: return new Date(b.pubDate || 0).getTime() - new Date(a.pubDate || 0).getTime();
+        default: {
+          const ta = parseDateSafe(a.pubDate), tb = parseDateSafe(b.pubDate);
+          if (!ta && !tb) return 0;
+          if (!ta) return 1; // no date → end
+          if (!tb) return -1;
+          return tb - ta;
+        }
       }
     });
 
@@ -410,7 +463,7 @@ export default function DashboardPage() {
         <div className="flex gap-6">
           {/* Sidebar */}
           <aside className="hidden lg:block w-60 shrink-0">
-            <div className="glass rounded-2xl p-4 sticky top-28 space-y-6">
+            <div className="glass rounded-2xl p-4 sticky top-28 max-h-[calc(100vh-8rem)] overflow-y-auto space-y-6">
               {/* Topics */}
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Your Topics</h3>
@@ -452,12 +505,30 @@ export default function DashboardPage() {
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1">
                   <Bookmark className="h-3 w-3" /> Saved
                 </h3>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {Array.isArray(savedArticlesList) && savedArticlesList.length > 0 ? (
-                    savedArticlesList.slice(0, 3).map((a: any) => (
-                      <div key={a.id || a.title} className="px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
-                        <p className="text-xs font-medium line-clamp-1">{a.title}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{a.source}</p>
+                    savedArticlesList.slice(0, 5).map((a: any) => (
+                      <div key={a.id || a.title} className="group flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors">
+                        <a
+                          href={a.link || '#'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 min-w-0 cursor-pointer"
+                        >
+                          <p className="text-xs font-medium line-clamp-1">
+                            {a.title || <span className="italic text-muted-foreground">Untitled article</span>}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {a.source || 'Unknown source'}
+                          </p>
+                        </a>
+                        <button
+                          onClick={() => saveMutation.mutate(a.id)}
+                          className="shrink-0 p-1 rounded text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                          title="Remove from saved"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
                       </div>
                     ))
                   ) : (
@@ -470,6 +541,9 @@ export default function DashboardPage() {
               <div className="pt-4 border-t border-border">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1">
                   <BarChart3 className="h-3 w-3" /> This Week
+                  <span className="ml-auto" title="Articles read per day this week">
+                    <HelpCircle className="h-3 w-3 text-muted-foreground/50 hover:text-muted-foreground cursor-help transition-colors" />
+                  </span>
                 </h3>
                 <div className="flex items-end gap-1.5 h-16 px-2">
                   {(stats?.weeklyData || [
@@ -480,11 +554,18 @@ export default function DashboardPage() {
                   ]).map((d: any) => {
                     const maxCount = Math.max(...(stats?.weeklyData?.map((x: any) => x.count) || [1]), 1);
                     return (
-                      <div key={d.day} className="flex-1 flex flex-col items-center gap-1">
+                      <div key={d.day} className="flex-1 flex flex-col items-center gap-1 group/bar relative">
+                        {/* Hover tooltip */}
+                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover/bar:opacity-100 transition-opacity pointer-events-none">
+                          <span className="text-[10px] font-bold text-primary bg-background/90 border border-border rounded px-1.5 py-0.5 whitespace-nowrap shadow-md">
+                            {d.count}
+                          </span>
+                        </div>
                         <motion.div
                           initial={{ height: 4 }}
                           animate={{ height: `${Math.max(4, (d.count / maxCount) * 48)}px` }}
-                          className="w-full rounded-sm bg-primary/20 hover:bg-primary/40 transition-colors"
+                          className="w-full rounded-sm bg-primary/20 hover:bg-primary/40 transition-colors cursor-pointer"
+                          title={`${d.day}: ${d.count} article${d.count !== 1 ? 's' : ''} read`}
                         />
                         <span className="text-[9px] text-muted-foreground">{d.day[0]}</span>
                       </div>
@@ -583,8 +664,8 @@ export default function DashboardPage() {
                                   setShowSettings(false);
                                 }}
                                 className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${articlesPerPage === n
-                                    ? 'bg-primary/10 text-primary border border-primary/20'
-                                    : 'glass text-muted-foreground hover:text-foreground'
+                                  ? 'bg-primary/10 text-primary border border-primary/20'
+                                  : 'glass text-muted-foreground hover:text-foreground'
                                   }`}
                               >
                                 {n}
@@ -823,9 +904,44 @@ export default function DashboardPage() {
                     <Sparkles className="h-3 w-3 text-primary" /> AI Summary
                   </h4>
                   {selectedArticle.summary === "Click to analyze" ? (
-                    <div className="text-sm text-muted-foreground flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                      Analyzing article with AI...
+                    <div className="space-y-3">
+                      {isAnalyzing ? (
+                        <div className="space-y-3">
+                          <div className="text-sm text-muted-foreground flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                            Analyzing article with AI...
+                          </div>
+                          {/* Shimmer loading skeleton */}
+                          <div className="space-y-2 animate-pulse">
+                            <div className="h-3 bg-muted/40 rounded w-full" />
+                            <div className="h-3 bg-muted/40 rounded w-5/6" />
+                            <div className="h-3 bg-muted/40 rounded w-4/6" />
+                          </div>
+                        </div>
+                      ) : aiCooldownLeft > 0 ? (
+                        <div className="space-y-2">
+                          <div className="text-sm text-muted-foreground flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-amber-500" />
+                            AI cooldown — available in {Math.ceil(aiCooldownLeft / 1000)}s
+                          </div>
+                          <div className="w-full h-1.5 rounded-full bg-muted/30 overflow-hidden">
+                            <motion.div
+                              className="h-full bg-amber-500/60 rounded-full"
+                              initial={{ width: '100%' }}
+                              animate={{ width: `${(aiCooldownLeft / AI_COOLDOWN_MS) * 100}%` }}
+                              transition={{ duration: 1, ease: 'linear' }}
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground/70">
+                            To reduce API usage, there is a short cooldown between each AI analysis.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                          Analyzing article with AI...
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground">{selectedArticle.summary}</p>

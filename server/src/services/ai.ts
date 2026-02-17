@@ -108,37 +108,87 @@ Respond with a JSON object following this exact structure:
 Important: Make the summary substantive and informative — a reader should understand the full story without reading the original article.
     `;
 
-        try {
-            if (this.provider === 'groq') {
-                if (!this.groq) return { summary: 'Groq API Key missing', insights: [], why: 'Config error', topic: 'Config' };
+        const MAX_RETRIES = 2;
+        const TIMEOUT_MS = 15000; // 15 second timeout per attempt
 
-                const completion = await this.groq.chat.completions.create({
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                if (this.provider === 'groq') {
+                    if (!this.groq) return { summary: 'Groq API Key missing', insights: [], why: 'Config error', topic: 'Config' };
+
+                    // Create abort controller for timeout
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+                    try {
+                        const completion = await this.groq.chat.completions.create(
+                            {
+                                messages: [{ role: 'user', content: prompt }],
+                                model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+                                response_format: { type: 'json_object' },
+                                max_tokens: 800,
+                            },
+                            { signal: controller.signal }
+                        );
+                        clearTimeout(timeoutId);
+
+                        const content = completion.choices[0]?.message?.content;
+                        return content ? JSON.parse(content) : { summary: 'Error', insights: [], why: 'No content', topic: 'Unknown' };
+                    } catch (err: any) {
+                        clearTimeout(timeoutId);
+
+                        // Rate limited (429) — wait and retry
+                        if (err?.status === 429 || err?.error?.type === 'rate_limit_error') {
+                            const waitMs = Math.min(2000 * Math.pow(2, attempt), 10000); // 2s, 4s, 8s (cap 10s)
+                            console.warn(`Groq rate limited. Waiting ${waitMs}ms before retry ${attempt + 1}/${MAX_RETRIES}...`);
+                            await new Promise(resolve => setTimeout(resolve, waitMs));
+                            continue; // retry
+                        }
+
+                        // Timeout — don't retry, return graceful error
+                        if (err?.name === 'AbortError' || err?.message?.includes('abort')) {
+                            console.warn('Groq request timed out after 15s');
+                            return {
+                                summary: 'Analysis timed out. Please try again.',
+                                insights: ['The AI service is currently slow — try again in a moment.'],
+                                why: 'Request timed out.',
+                                topic: 'Uncategorized'
+                            };
+                        }
+
+                        throw err; // re-throw other errors
+                    }
+                }
+
+                const response = await ollama.chat({
+                    model: this.model,
                     messages: [{ role: 'user', content: prompt }],
-                    model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
-                    response_format: { type: 'json_object' },
-                    max_tokens: 800,
+                    format: 'json',
                 });
-                const content = completion.choices[0]?.message?.content;
-                return content ? JSON.parse(content) : { summary: 'Error', insights: [], why: 'No content', topic: 'Unknown' };
+
+                const content = response.message.content;
+                return JSON.parse(content);
+            } catch (error: any) {
+                console.error(`AI Processing Error (attempt ${attempt + 1}):`, error?.message || error);
+
+                // On last attempt, return error
+                if (attempt === MAX_RETRIES) {
+                    return {
+                        summary: 'Error generating summary. The AI service may be busy — try again shortly.',
+                        insights: [],
+                        why: 'Analysis failed.',
+                        topic: 'Uncategorized'
+                    };
+                }
+
+                // Wait before retry
+                const waitMs = 2000 * Math.pow(2, attempt);
+                await new Promise(resolve => setTimeout(resolve, waitMs));
             }
-
-            const response = await ollama.chat({
-                model: this.model,
-                messages: [{ role: 'user', content: prompt }],
-                format: 'json',
-            });
-
-            const content = response.message.content;
-            return JSON.parse(content);
-        } catch (error) {
-            console.error('AI Processing Error:', error);
-            return {
-                summary: 'Error generating summary.',
-                insights: [],
-                why: 'Analysis failed.',
-                topic: 'Uncategorized'
-            };
         }
+
+        // Fallback (should not reach here)
+        return { summary: 'Analysis unavailable.', insights: [], why: 'Service error.', topic: 'Uncategorized' };
     }
 
     async analyzeTrending(articleTitles: string[]): Promise<string[]> {

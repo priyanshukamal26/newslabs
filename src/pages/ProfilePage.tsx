@@ -2,15 +2,16 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
     User, Mail, Phone, Lock, Moon, Sun, Heart, Bookmark,
-    ChevronRight, Clock, ArrowLeft, Save, Check, X, ExternalLink
+    ChevronRight, Clock, ArrowLeft, Save, Check, X, ExternalLink, Trash2
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import {
     getUserProfile, updateProfile, changePassword,
-    getLikedArticles, getSavedArticles
+    getLikedArticles, getSavedArticles, likeArticle, saveArticle
 } from "../lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export default function ProfilePage() {
     const { user, updateUser, logout } = useAuth();
@@ -56,6 +57,28 @@ export default function ProfilePage() {
             setTimeout(() => { setPasswordMsg(""); setShowPasswordForm(false); }, 2000);
         },
         onError: () => setPasswordMsg("Failed. Check current password."),
+    });
+
+    // Unlike mutation
+    const unlikeMutation = useMutation({
+        mutationFn: likeArticle,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['liked-articles'] });
+            queryClient.invalidateQueries({ queryKey: ['interactions'] });
+            queryClient.invalidateQueries({ queryKey: ['user-stats'] });
+            toast("Removed from likes", { duration: 2000 });
+        },
+    });
+
+    // Unsave mutation
+    const unsaveMutation = useMutation({
+        mutationFn: saveArticle,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['saved-articles'] });
+            queryClient.invalidateQueries({ queryKey: ['interactions'] });
+            queryClient.invalidateQueries({ queryKey: ['user-stats'] });
+            toast("Removed from saved", { duration: 2000 });
+        },
     });
 
     useEffect(() => {
@@ -247,36 +270,59 @@ export default function ProfilePage() {
                         </button>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                         {(activeTab === "liked" ? likedArticles : savedArticles).length === 0 ? (
                             <p className="text-center text-sm text-muted-foreground py-8">
                                 No {activeTab} articles yet. Start exploring your feed!
                             </p>
                         ) : (
                             (activeTab === "liked" ? likedArticles : savedArticles).map((article: any) => (
-                                <div key={article.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/30 transition-colors group">
+                                <div key={article.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-muted/30 transition-colors group">
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
+                                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                                             <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                                                 {article.topic || "News"}
                                             </span>
                                             <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                                                 <Clock className="h-3 w-3" /> {article.timeToRead || "3 min"}
                                             </span>
+                                            {article.source && (
+                                                <span className="text-[10px] text-muted-foreground">· {article.source}</span>
+                                            )}
                                         </div>
-                                        <h4 className="text-sm font-medium line-clamp-1">{article.title}</h4>
-                                        <p className="text-xs text-muted-foreground mt-0.5">{article.source}</p>
+                                        <h4 className="text-sm font-medium line-clamp-2 mb-0.5">
+                                            {article.title || <span className="italic text-muted-foreground">Untitled article</span>}
+                                        </h4>
+                                        {article.summary && article.summary !== "Click to analyze" && (
+                                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{article.summary}</p>
+                                        )}
                                     </div>
-                                    {article.link && (
-                                        <a
-                                            href={article.link}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="p-2 text-muted-foreground hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
+                                    <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        {article.link && (
+                                            <a
+                                                href={article.link}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="p-1.5 rounded-lg text-muted-foreground hover:text-primary transition-colors"
+                                                title="Open article"
+                                            >
+                                                <ExternalLink className="h-3.5 w-3.5" />
+                                            </a>
+                                        )}
+                                        <button
+                                            onClick={() => {
+                                                if (activeTab === "liked") {
+                                                    unlikeMutation.mutate(article.id);
+                                                } else {
+                                                    unsaveMutation.mutate(article.id);
+                                                }
+                                            }}
+                                            className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 transition-colors"
+                                            title={activeTab === "liked" ? "Remove from liked" : "Remove from saved"}
                                         >
-                                            <ExternalLink className="h-4 w-4" />
-                                        </a>
-                                    )}
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
                                 </div>
                             ))
                         )}
@@ -296,3 +342,4 @@ export default function ProfilePage() {
         </div>
     );
 }
+
