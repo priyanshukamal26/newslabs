@@ -69,7 +69,8 @@ export async function authRoutes(server: FastifyInstance) {
             }
             return { token, user: { id: user.id, email: user.email, name: user.name, topics: userTopics } };
         } catch (error) {
-            return reply.status(400).send({ error: 'Invalid request' });
+            console.error('Login error:', error);
+            return reply.status(400).send({ error: 'Invalid request', details: error instanceof Error ? error.message : String(error) });
         }
     });
 
