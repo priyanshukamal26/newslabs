@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  phone     String?
+  avatarUrl String?
+  darkMode  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  
+  topics    String   @default("[]")
+  
+  // Stats tracking
+  totalReads     Int      @default(0)
+  totalReadTime  Int      @default(0)
+  loginDays      Int      @default(0)
+  lastLoginDate  String   @default("")
+  currentStreak  Int      @default(0)
+  longestStreak  Int      @default(0)
+  lastStreakDate String   @default("")
+  
+  savedArticles SavedArticle[]
+  likedArticles LikedArticle[]
+  readHistory   ReadHistory[]
+  notifications Notification[]
+}
+
+model Feed {
+  id          String   @id @default(uuid())
+  url         String   @unique
+  name        String
+  type        String
+  lastFetched DateTime @default(now())
+  isActive    Boolean  @default(true)
+}
+
+model SavedArticle {
+  id          String   @id @default(uuid())
+  userId      String
+  articleId   String
+  title       String   @default("")
+  source      String   @default("")
+  topic       String   @default("")
+  link        String   @default("")
+  summary     String   @default("")
+  timeToRead  String   @default("")
+  pubDate     String   @default("")
+  savedAt     DateTime @default(now())
+  
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, articleId])
+}
+
+model LikedArticle {
+  id          String   @id @default(uuid())
+  userId      String
+  articleId   String
+  title       String   @default("")
+  source      String   @default("")
+  topic       String   @default("")
+  link        String   @default("")
+  summary     String   @default("")
+  timeToRead  String   @default("")
+  pubDate     String   @default("")
+  likedAt     DateTime @default(now())
+  
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, articleId])
+}
+
+model ReadHistory {
+  id        String   @id @default(uuid())
+  userId    String
+  articleId String
+  readAt    DateTime @default(now())
+  timeSpent Int      @default(0)
+  
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, articleId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Trend {
+  id        String   @id @default(uuid())
+  topic     String
+  score     Float
+  updatedAt DateTime @updatedAt
+}
