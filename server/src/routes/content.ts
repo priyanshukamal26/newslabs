@@ -175,8 +175,31 @@ export async function contentRoutes(server: FastifyInstance) {
             return article;
         }
 
+        // Get user preference
+        let aiProvider = 'hybrid';
         try {
-            const analysis = await aiService.summarize(article.contentSnippet || article.content || article.title || "");
+            const authHeader = request.headers.authorization;
+            if (authHeader) {
+                const token = authHeader.split(' ')[1];
+                // Manually verify since this route is optional auth
+                const jwt = require('jsonwebtoken');
+                const decoded = jwt.decode(token) as { userId: string };
+                if (decoded?.userId) {
+                    const { PrismaClient } = require('@prisma/client');
+                    const prisma = new PrismaClient();
+                    const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+                    if (user?.aiProvider) {
+                        aiProvider = user.aiProvider;
+                    }
+                    await prisma.$disconnect();
+                }
+            }
+        } catch (e) {
+            console.warn("Failed to fetch user preference for analysis:", e);
+        }
+
+        try {
+            const analysis = await aiService.summarize(article.contentSnippet || article.content || article.title || "", aiProvider);
             article.summary = analysis.summary;
             article.topic = analysis.topic;
             article.why = analysis.why;

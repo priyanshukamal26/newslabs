@@ -41,7 +41,7 @@ export async function userRoutes(server: FastifyInstance) {
         const user = await prisma.user.findUnique({
             where: { id: userId },
             select: {
-                id: true, email: true, name: true, phone: true, darkMode: true,
+                id: true, email: true, name: true, phone: true, darkMode: true, aiProvider: true,
                 topics: true, createdAt: true, totalReads: true, totalReadTime: true,
                 loginDays: true, currentStreak: true, longestStreak: true,
             }
@@ -62,13 +62,15 @@ export async function userRoutes(server: FastifyInstance) {
             phone: z.string().optional(),
             email: z.string().email().optional(),
             darkMode: z.boolean().optional(),
+            aiProvider: z.enum(['groq', 'gemini', 'hybrid']).optional(),
         });
 
         const data = schema.parse(request.body);
+
         const user = await prisma.user.update({
             where: { id: userId },
             data,
-            select: { id: true, email: true, name: true, phone: true, darkMode: true, topics: true }
+            select: { id: true, email: true, name: true, phone: true, darkMode: true, topics: true, aiProvider: true }
         });
 
         let topics: string[] = [];

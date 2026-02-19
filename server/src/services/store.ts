@@ -17,7 +17,7 @@ export interface Article extends FeedItem {
 export class Store {
     private articles: Article[] = [];
     private feeds: string[] = [];
-    private maxArticles = 150;
+    private maxArticles = 1000;
 
     constructor() {
         // More RSS feeds for broader coverage

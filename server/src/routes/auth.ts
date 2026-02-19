@@ -40,7 +40,7 @@ export async function authRoutes(server: FastifyInstance) {
             } catch (e) {
                 userTopics = [];
             }
-            return { token, user: { id: user.id, email: user.email, name: user.name, topics: userTopics } };
+            return { token, user: { id: user.id, email: user.email, name: user.name, topics: userTopics, aiProvider: user.aiProvider } };
         } catch (error) {
             return reply.status(400).send({ error: error instanceof Error ? error.message : 'Invalid request' });
         }
@@ -67,7 +67,7 @@ export async function authRoutes(server: FastifyInstance) {
             } catch (e) {
                 userTopics = [];
             }
-            return { token, user: { id: user.id, email: user.email, name: user.name, topics: userTopics } };
+            return { token, user: { id: user.id, email: user.email, name: user.name, topics: userTopics, aiProvider: user.aiProvider } };
         } catch (error) {
             console.error('Login error:', error);
             return reply.status(400).send({ error: 'Invalid request', details: error instanceof Error ? error.message : String(error) });
@@ -89,7 +89,7 @@ export async function authRoutes(server: FastifyInstance) {
                 data: { topics: JSON.stringify(topics) },
             });
 
-            return { user: { id: user.id, email: user.email, name: user.name, topics } };
+            return { user: { id: user.id, email: user.email, name: user.name, topics, aiProvider: user.aiProvider } };
         } catch (error) {
             return reply.status(400).send({ error: 'Update failed' });
         }

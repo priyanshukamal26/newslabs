@@ -7,6 +7,7 @@ export interface User {
     name?: string;
     phone?: string;
     darkMode?: boolean;
+    aiProvider?: 'groq' | 'gemini' | 'hybrid';
     topics?: string[];
 }
 

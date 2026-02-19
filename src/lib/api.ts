@@ -76,7 +76,7 @@ export const getUserProfile = async () => {
     return data;
 };
 
-export const updateProfile = async (profileData: { name?: string; phone?: string; email?: string; darkMode?: boolean }) => {
+export const updateProfile = async (profileData: { name?: string; phone?: string; email?: string; darkMode?: boolean; aiProvider?: string }) => {
     const { data } = await api.put('/user/profile', profileData);
     return data;
 };

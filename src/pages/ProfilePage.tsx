@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
-    User, Mail, Phone, Lock, Moon, Sun, Heart, Bookmark,
-    ChevronRight, Clock, ArrowLeft, Save, Check, X, ExternalLink, Trash2
-} from "lucide-react";
+    User, Mail, Phone, Lock, Heart, Bookmark,
+    ChevronRight, Clock, ArrowLeft, X, Sparkles
+} from "lucide-react"; // Removed Sun, Moon
 import { Link } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import {
@@ -21,7 +21,8 @@ export default function ProfilePage() {
     const [name, setName] = useState(user?.name || "");
     const [phone, setPhone] = useState(user?.phone || "");
     const [email, setEmail] = useState(user?.email || "");
-    const [darkMode, setDarkMode] = useState(user?.darkMode !== false);
+    // Removed darkMode state
+    const [aiProvider, setAiProvider] = useState(user?.aiProvider || "hybrid");
 
     const [showPasswordForm, setShowPasswordForm] = useState(false);
     const [currentPassword, setCurrentPassword] = useState("");
@@ -41,7 +42,7 @@ export default function ProfilePage() {
     });
 
     const profileMutation = useMutation({
-        mutationFn: () => updateProfile({ name, phone, email, darkMode }),
+        mutationFn: () => updateProfile({ name, phone, email, aiProvider }), // Removed darkMode
         onSuccess: (data) => {
             updateUser({ ...user!, ...data, topics: data.topics });
             setEditMode(false);
@@ -81,21 +82,10 @@ export default function ProfilePage() {
         },
     });
 
+    // Force Dark Mode
     useEffect(() => {
-        if (darkMode) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    }, [darkMode]);
-
-    const handleToggleDarkMode = () => {
-        const newMode = !darkMode;
-        setDarkMode(newMode);
-        updateProfile({ darkMode: newMode }).then(() => {
-            updateUser({ ...user!, darkMode: newMode });
-        });
-    };
+        document.documentElement.classList.add('dark');
+    }, []);
 
     return (
         <div className="min-h-screen pt-24 pb-12 px-4">
@@ -114,14 +104,7 @@ export default function ProfilePage() {
                     <div className="flex items-center justify-between mb-6">
                         <h1 className="text-2xl font-bold">Profile</h1>
                         <div className="flex items-center gap-3">
-                            {/* Dark/Light Mode Toggle */}
-                            <button
-                                onClick={handleToggleDarkMode}
-                                className="p-2 rounded-xl glass text-muted-foreground hover:text-foreground transition-colors"
-                                title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-                            >
-                                {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                            </button>
+                            {/* Theme Toggle Removed */}
                             {editMode ? (
                                 <div className="flex gap-2">
                                     <button
@@ -146,8 +129,55 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
+                    {/* AI Settings */}
+                    <div className="space-y-4 pt-4 border-t border-border">
+                        <h3 className="text-lg font-medium flex items-center gap-2">
+                            <Sparkles className="w-5 h-5 text-primary" />
+                            AI Preferences
+                        </h3>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-muted-foreground">Preferred AI Provider</label>
+                                <div className="relative">
+                                    <select
+                                        value={aiProvider}
+                                        onChange={async (e) => {
+                                            const newVal = e.target.value as "groq" | "gemini" | "hybrid";
+                                            setAiProvider(newVal);
+                                            toast.promise(
+                                                updateProfile({ aiProvider: newVal }).then((data) => {
+                                                    updateUser({ ...user!, ...data });
+                                                }),
+                                                {
+                                                    loading: 'Updating preference...',
+                                                    success: 'AI Provider updated!',
+                                                    error: (err) => {
+                                                        console.error('Update failed:', err);
+                                                        return 'Failed to update setting';
+                                                    }
+                                                }
+                                            );
+                                        }}
+                                        className="w-full bg-muted/30 border border-border rounded-lg px-4 py-2.5 text-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 appearance-none cursor-pointer hover:bg-muted/50 transition-colors"
+                                    >
+                                        <option value="hybrid">✨ Hybrid (Smart Select)</option>
+                                        <option value="groq">⚡ Groq (Fastest)</option>
+                                        <option value="gemini">🧠 Gemini 3 Flash (Balanced)</option>
+                                    </select>
+                                    <div className="absolute right-3 top-3 pointer-events-none text-muted-foreground">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
+                                </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Hybrid uses Groq for speed and switches to Gemini if rate limited.
+                            </p>
+                        </div>
+                    </div>
+
+
                     {/* Avatar */}
-                    <div className="flex items-center gap-4 mb-6">
+                    <div className="flex items-center gap-4 mb-6 mt-6 pt-4 border-t border-border">
                         <div className="h-16 w-16 rounded-full bg-primary/20 border-2 border-primary/30 flex items-center justify-center text-2xl font-bold text-primary">
                             {user?.name?.[0]?.toUpperCase() || "U"}
                         </div>
@@ -332,8 +362,8 @@ export default function ProfilePage() {
                         Sign Out
                     </button>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }
 

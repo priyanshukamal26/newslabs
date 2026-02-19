@@ -1,6 +1,4 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
+import 'dotenv/config';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { appRoutes } from './routes';
@@ -10,7 +8,9 @@ const server = Fastify({
 });
 
 server.register(cors, {
-    origin: '*' // Configure implementation to match frontend URL in production
+    origin: '*', // Configure implementation to match frontend URL in production
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 });
 
 server.get('/health', async (request, reply) => {

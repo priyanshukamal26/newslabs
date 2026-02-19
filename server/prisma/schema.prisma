@@ -15,6 +15,7 @@ model User {
   phone     String?
   avatarUrl String?
   darkMode  Boolean  @default(true)
+  aiProvider String   @default("hybrid")
   createdAt DateTime @default(now())
   
   topics    String   @default("[]")

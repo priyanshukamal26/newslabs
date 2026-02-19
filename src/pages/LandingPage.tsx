@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Sparkles, TrendingUp, BookOpen, Shield, Cpu, Rss, KeyRound, Brain, Lock, ArrowRight, Zap } from "lucide-react";
+import { Sparkles, TrendingUp, BookOpen, Shield, Cpu, Rss, KeyRound, Brain, Lock, ArrowRight, Zap, Github, Linkedin } from "lucide-react";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -77,13 +77,6 @@ function HeroSection() {
             className="px-8 py-3 rounded-full bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity glow-primary"
           >
             Get Started
-          </Link>
-          <Link
-            to="/dashboard"
-            className="px-8 py-3 rounded-full glass text-foreground font-semibold text-sm hover:bg-muted/60 transition-colors group"
-          >
-            View Demo
-            <ArrowRight className="inline ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
           </Link>
         </motion.div>
       </div>
@@ -244,15 +237,29 @@ function Footer() {
       <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <Zap className="h-4 w-4 text-primary" />
-          <span className="text-sm font-semibold">NewsLabs</span>
+          <span className="text-sm">
+            <span className="font-semibold">NewsLabs</span> by Priyanshu Kamal
+          </span>
         </div>
-        <div className="flex gap-6 text-xs text-muted-foreground">
-          <Link to="/features" className="hover:text-foreground transition-colors">Features</Link>
-          <Link to="/how-it-works" className="hover:text-foreground transition-colors">How it Works</Link>
-          <Link to="/docs" className="hover:text-foreground transition-colors">Docs</Link>
-          <Link to="/auth" className="hover:text-foreground transition-colors">Sign In</Link>
+        <div className="flex items-center gap-4">
+          <span className="text-xs font-bold text-muted-foreground">Connect:</span>
+          <a
+            href="https://github.com/priyanshukamal26/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Github className="h-5 w-5" />
+          </a>
+          <a
+            href="https://www.linkedin.com/in/priyanshukamal/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Linkedin className="h-5 w-5" />
+          </a>
         </div>
-        <p className="text-xs text-muted-foreground">© 2026 NewsLabs. All rights reserved.</p>
       </div>
     </footer>
   );

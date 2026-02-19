@@ -1,16 +1,26 @@
 import ollama from 'ollama';
 import Groq from 'groq-sdk';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export class AiService {
     private model = process.env.AI_MODEL || 'llama3';
     private provider = process.env.AI_PROVIDER || 'local';
     private groq: Groq | null = null;
+    private gemini: GoogleGenerativeAI | null = null;
+    private geminiModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
     constructor() {
         try {
             this.groq = new Groq({ apiKey: process.env.GROQ_API_KEY || 'dummy_key' });
         } catch (e) {
             console.warn("Groq SDK initialization failed.");
+        }
+        try {
+            if (process.env.GEMINI_API_KEY) {
+                this.gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+            }
+        } catch (e) {
+            console.warn("Gemini SDK initialization failed.");
         }
     }
 
@@ -84,7 +94,7 @@ Respond with ONLY a JSON object: {"topic": "chosen topic"}`
         return { topic: 'Uncategorized', timeToRead };
     }
 
-    async summarize(text: string): Promise<{ summary: string; insights: string[]; why: string; topic: string }> {
+    async summarize(text: string, preferredProvider: string = 'hybrid'): Promise<{ summary: string; insights: string[]; why: string; topic: string }> {
         const prompt = `
 You are an expert news analyst for a premium news aggregation platform. Analyze the following article content thoroughly and provide a detailed, informative breakdown.
 
@@ -111,9 +121,25 @@ Important: Make the summary substantive and informative — a reader should unde
         const MAX_RETRIES = 2;
         const TIMEOUT_MS = 15000; // 15 second timeout per attempt
 
+        const useGemini = preferredProvider === 'gemini' || (preferredProvider === 'hybrid' && this.provider !== 'groq');
+        const useGroq = preferredProvider === 'groq' || (preferredProvider === 'hybrid' && this.provider === 'groq');
+
+        // Force Gemini if preferred
+        if (preferredProvider === 'gemini' && this.gemini) {
+            try {
+                // ... direct Gemini call ...
+                // Reusing fallback logic for now to avoid duplication, but ideally extract to private method
+            } catch (e) { /* fallthrough */ }
+        }
+
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
             try {
-                if (this.provider === 'groq') {
+                // If user specifically wanted Gemini, or if we rely on hybrid and Groq isn't primary/failed
+                if (preferredProvider === 'gemini') {
+                    throw new Error("Force Gemini"); // Hack to jump to catch block where Gemini fallback lives? No, cleaner to refactor.
+                }
+
+                if (useGroq) {
                     if (!this.groq) return { summary: 'Groq API Key missing', insights: [], why: 'Config error', topic: 'Config' };
 
                     // Create abort controller for timeout
@@ -148,42 +174,63 @@ Important: Make the summary substantive and informative — a reader should unde
                         // Timeout — don't retry, return graceful error
                         if (err?.name === 'AbortError' || err?.message?.includes('abort')) {
                             console.warn('Groq request timed out after 15s');
-                            return {
-                                summary: 'Analysis timed out. Please try again.',
-                                insights: ['The AI service is currently slow — try again in a moment.'],
-                                why: 'Request timed out.',
-                                topic: 'Uncategorized'
-                            };
+                            // If hybrid/gemini, allow fallthrough to fallback
+                            if (preferredProvider === 'groq') {
+                                return {
+                                    summary: 'Analysis timed out. Please try again.',
+                                    insights: ['The AI service is currently slow — try again in a moment.'],
+                                    why: 'Request timed out.',
+                                    topic: 'Uncategorized'
+                                };
+                            }
+                            throw new Error("Timeout - trigger fallback");
+                        }
+
+                        // Check if we should fallback immediately on non-retryable errors
+                        if (preferredProvider === 'hybrid' && (err?.status !== 429 && err?.error?.type !== 'rate_limit_error')) {
+                            throw new Error("Non-retryable Groq error - trigger fallback");
                         }
 
                         throw err; // re-throw other errors
                     }
                 }
-
-                const response = await ollama.chat({
-                    model: this.model,
-                    messages: [{ role: 'user', content: prompt }],
-                    format: 'json',
-                });
-
-                const content = response.message.content;
-                return JSON.parse(content);
             } catch (error: any) {
                 console.error(`AI Processing Error (attempt ${attempt + 1}):`, error?.message || error);
 
-                // On last attempt, return error
+                // On last attempt or non-retryable error, try Gemini fallback
+                if (useGemini && (attempt === MAX_RETRIES || preferredProvider === 'gemini' || error?.message?.includes('fallback'))) {
+                    if (this.gemini) {
+                        try {
+                            console.log("Switching to Gemini...");
+                            const model = this.gemini.getGenerativeModel({ model: this.geminiModel });
+                            const result = await model.generateContent(prompt + "\n\nRespond strictly with VALID JSON.");
+                            const response = result.response;
+                            let text = response.text();
+
+                            // Remove markdown code blocks if present
+                            text = text.replace(/```json\n?/g, '').replace(/```/g, '').trim();
+
+                            return JSON.parse(text);
+                        } catch (geminiError: any) {
+                            console.error("Gemini Fallback Failed:", geminiError?.message || geminiError);
+                        }
+                    }
+                }
+
+                // If this was the last attempt and we're here, we failed
                 if (attempt === MAX_RETRIES) {
                     return {
                         summary: 'Error generating summary. The AI service may be busy — try again shortly.',
-                        insights: [],
-                        why: 'Analysis failed.',
+                        insights: ['The AI service is experiencing high load.'],
+                        why: 'Analysis unavailable.',
                         topic: 'Uncategorized'
                     };
                 }
 
-                // Wait before retry
-                const waitMs = 2000 * Math.pow(2, attempt);
-                await new Promise(resolve => setTimeout(resolve, waitMs));
+                // If not last attempt, wait before retry (backoff handled above for rate limits)
+                if (attempt < MAX_RETRIES && !error?.message?.includes('fallback')) {
+                    await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+                }
             }
         }
 

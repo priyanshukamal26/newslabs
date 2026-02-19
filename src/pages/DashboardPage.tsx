@@ -25,7 +25,7 @@ type SortMode = "newest" | "oldest" | "most-liked" | "reading-time";
 
 const ARTICLES_PER_PAGE_OPTIONS = [15, 30, 50];
 const DEFAULT_PER_PAGE = 30;
-const AI_COOLDOWN_MS = 60000; // 60-second cooldown between AI calls
+const AI_COOLDOWN_MS = 30000; // 30-second cooldown between AI calls
 
 // Robust date parser: returns timestamp for sorting, puts invalid/missing dates last
 function parseDateSafe(dateStr?: string): number {
@@ -127,6 +127,8 @@ export default function DashboardPage() {
 
   const queryClient = useQueryClient();
 
+  const [waitingForCooldown, setWaitingForCooldown] = useState(false);
+
   // Cooldown timer tick
   useEffect(() => {
     if (aiCooldownEnd <= Date.now()) {
@@ -141,41 +143,60 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [aiCooldownEnd]);
 
+  const handleAnalyzeArticle = async (article: Article) => {
+    // Check cooldown
+    const now = Date.now();
+    if (aiCooldownEnd > now) {
+      const secs = Math.ceil((aiCooldownEnd - now) / 1000);
+      // Only show toast if user clicked manually (not auto-retry)
+      if (!waitingForCooldown) {
+        toast.error(`AI is cooling down — please wait ${secs}s before analyzing another article.`, { duration: 3000 });
+      }
+      // Set flag to retry when cooldown ends
+      setWaitingForCooldown(true);
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setWaitingForCooldown(false); // Reset flag
+
+    try {
+      const analyzed = await analyzeArticle(article.id);
+      setSelectedArticle(analyzed);
+      queryClient.setQueryData(['feed'], (oldArticles: Article[] | undefined) => {
+        return oldArticles?.map(a => a.id === analyzed.id ? analyzed : a);
+      });
+      // Start cooldown after successful analysis
+      setAiCooldownEnd(Date.now() + AI_COOLDOWN_MS);
+      setAiCooldownLeft(AI_COOLDOWN_MS);
+    } catch (err) {
+      console.error("Analysis failed:", err);
+      toast.error("Summary took too long — tap the article again to retry.", { duration: 4000 });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   // Auto-analyze when opening an article
   useEffect(() => {
-    if (selectedArticle && selectedArticle.summary === "Click to analyze") {
+    if (selectedArticle) {
       if (isAuthenticated) {
         recordRead(selectedArticle.id).catch(() => { });
         queryClient.invalidateQueries({ queryKey: ['user-stats'] });
       }
 
-      // Check cooldown
-      const now = Date.now();
-      if (aiCooldownEnd > now) {
-        const secs = Math.ceil((aiCooldownEnd - now) / 1000);
-        toast.error(`AI is cooling down — please wait ${secs}s before analyzing another article.`, { duration: 3000 });
-        return;
+      if (selectedArticle.summary === "Click to analyze") {
+        handleAnalyzeArticle(selectedArticle);
       }
-
-      setIsAnalyzing(true);
-      analyzeArticle(selectedArticle.id).then(analyzed => {
-        setSelectedArticle(analyzed);
-        queryClient.setQueryData(['feed'], (oldArticles: Article[] | undefined) => {
-          return oldArticles?.map(a => a.id === analyzed.id ? analyzed : a);
-        });
-        // Start cooldown after successful analysis
-        setAiCooldownEnd(Date.now() + AI_COOLDOWN_MS);
-        setAiCooldownLeft(AI_COOLDOWN_MS);
-      }).catch(err => {
-        console.error("Analysis failed:", err);
-        toast.error("Summary took too long — tap the article again to retry.", { duration: 4000 });
-      }).finally(() => {
-        setIsAnalyzing(false);
-      });
-    } else if (selectedArticle && isAuthenticated) {
-      recordRead(selectedArticle.id).catch(() => { });
     }
   }, [selectedArticle?.id]);
+
+  // Auto-retry when cooldown ends
+  useEffect(() => {
+    if (aiCooldownLeft === 0 && waitingForCooldown && selectedArticle?.summary === "Click to analyze" && !isAnalyzing) {
+      handleAnalyzeArticle(selectedArticle);
+    }
+  }, [aiCooldownLeft, waitingForCooldown, selectedArticle, isAnalyzing]);
 
   // Load user topics on mount
   useEffect(() => {
@@ -374,7 +395,7 @@ export default function DashboardPage() {
           className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4"
         >
           <div>
-            <h1 className="text-2xl font-bold mb-1">{greeting}, {user?.name?.split(' ')[0] || "User"} 👋</h1>
+            <h1 className="text-2xl font-bold mb-1">{greeting}, {user?.name?.split(' ')[0] || "User"}!</h1>
             <p className="text-sm text-muted-foreground">{dateStr} · {safeArticles.length} articles in your feed</p>
           </div>
           <div className="flex items-center gap-3">
