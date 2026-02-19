@@ -121,8 +121,8 @@ Important: Make the summary substantive and informative — a reader should unde
         const MAX_RETRIES = 2;
         const TIMEOUT_MS = 15000; // 15 second timeout per attempt
 
-        const useGemini = preferredProvider === 'gemini' || (preferredProvider === 'hybrid' && this.provider !== 'groq');
-        const useGroq = preferredProvider === 'groq' || (preferredProvider === 'hybrid' && this.provider === 'groq');
+        const useGemini = preferredProvider === 'gemini' || preferredProvider === 'hybrid';
+        const useGroq = preferredProvider === 'groq' || preferredProvider === 'hybrid';
 
         // Force Gemini if preferred
         if (preferredProvider === 'gemini' && this.gemini) {
