@@ -45,7 +45,11 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2">
+    <div className="min-h-screen grid lg:grid-cols-2 relative overflow-hidden">
+      {/* Background mesh */}
+      <div className="absolute inset-0 gradient-mesh pointer-events-none" />
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse-glow pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-accent/5 rounded-full blur-3xl animate-pulse-glow pointer-events-none" style={{ animationDelay: "1.5s" }} />
       {/* Left Panel - Form */}
       <div className="flex flex-col justify-center p-6 sm:p-12 lg:p-24 relative">
         <Link to="/" className="absolute top-8 left-8 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -116,7 +120,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2 glow-primary"
             >
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
               {isLogin ? "Sign In" : "Create Account"}
@@ -141,8 +145,8 @@ export default function AuthPage() {
       </div>
 
       {/* Right Panel - Visual */}
-      <div className="hidden lg:flex flex-col justify-center items-center bg-muted/30 p-12 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
+      <div className="hidden lg:flex flex-col justify-center items-center p-12 relative overflow-hidden z-10 glass rounded-l-3xl my-6 mr-6 shadow-2xl border border-white/10 dark:border-white/5">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent" />
         <div className="relative z-10 max-w-md text-center">
           <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-white shadow-xl mb-8">
             <Sparkles className="h-8 w-8 text-primary" />

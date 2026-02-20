@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Zap } from "lucide-react";
+import { Menu, X, Zap, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "../lib/auth";
 
@@ -83,9 +83,10 @@ export function Navbar() {
           {isAuthenticated ? (
             <button
               onClick={logout}
-              className="px-4 py-1.5 text-xs font-semibold rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+              title="Sign Out"
+              className="p-2 text-xs font-semibold rounded-full bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors flex items-center justify-center glow-primary"
             >
-              Sign Out
+              <LogOut className="h-4 w-4" />
             </button>
           ) : (
             <Link
@@ -142,9 +143,9 @@ export function Navbar() {
                 logout();
                 setMobileOpen(false);
               }}
-              className="px-4 py-2 rounded-lg text-sm font-semibold bg-primary/10 text-primary text-center mt-1"
+              className="px-4 py-2 flex justify-center items-center gap-2 rounded-lg text-sm font-semibold bg-red-500/10 text-red-500 text-center mt-1"
             >
-              Sign Out
+              <LogOut className="h-4 w-4" /> Sign Out
             </button>
           ) : (
             <Link

@@ -153,7 +153,7 @@ export default function ProfilePage() {
                                                     success: 'AI Provider updated!',
                                                     error: (err) => {
                                                         console.error('Update failed:', err);
-                                                        return 'Failed to update setting';
+                                                        return 'Failed to update setting. Please try after a while.';
                                                     }
                                                 }
                                             );
