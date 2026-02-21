@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
     User, Mail, Phone, Lock, Heart, Bookmark,
-    ChevronRight, Clock, ArrowLeft, X, Sparkles
-} from "lucide-react"; // Removed Sun, Moon
+    ChevronRight, ArrowLeft, X, Sparkles, AlertTriangle
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import {
@@ -21,13 +21,15 @@ export default function ProfilePage() {
     const [name, setName] = useState(user?.name || "");
     const [phone, setPhone] = useState(user?.phone || "");
     const [email, setEmail] = useState(user?.email || "");
-    // Removed darkMode state
     const [aiProvider, setAiProvider] = useState(user?.aiProvider || "hybrid");
 
     const [showPasswordForm, setShowPasswordForm] = useState(false);
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [passwordMsg, setPasswordMsg] = useState("");
+
+    // For confirm logout
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
     const [activeTab, setActiveTab] = useState<"liked" | "saved">("liked");
 
@@ -42,10 +44,11 @@ export default function ProfilePage() {
     });
 
     const profileMutation = useMutation({
-        mutationFn: () => updateProfile({ name, phone, email, aiProvider }), // Removed darkMode
+        mutationFn: () => updateProfile({ name, phone, email, aiProvider }),
         onSuccess: (data) => {
             updateUser({ ...user!, ...data, topics: data.topics });
             setEditMode(false);
+            toast.success("Profile updated");
         },
     });
 
@@ -60,7 +63,6 @@ export default function ProfilePage() {
         onError: () => setPasswordMsg("Failed. Check current password."),
     });
 
-    // Unlike mutation
     const unlikeMutation = useMutation({
         mutationFn: likeArticle,
         onSuccess: () => {
@@ -71,7 +73,6 @@ export default function ProfilePage() {
         },
     });
 
-    // Unsave mutation
     const unsaveMutation = useMutation({
         mutationFn: saveArticle,
         onSuccess: () => {
@@ -82,20 +83,18 @@ export default function ProfilePage() {
         },
     });
 
-    // Force Dark Mode
     useEffect(() => {
         document.documentElement.classList.add('dark');
     }, []);
 
     return (
-        <div className="min-h-screen pt-24 pb-12 px-4">
+        <div className="min-h-screen pt-24 pb-12 px-4 relative">
             <div className="max-w-3xl mx-auto">
-                {/* Back to Dashboard */}
                 <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
                     <ArrowLeft className="h-4 w-4" /> Back to Dashboard
                 </Link>
 
-                {/* Profile Header */}
+                {/* 1. Profile Section */}
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -104,7 +103,6 @@ export default function ProfilePage() {
                     <div className="flex items-center justify-between mb-6">
                         <h1 className="text-2xl font-bold">Profile</h1>
                         <div className="flex items-center gap-3">
-                            {/* Theme Toggle Removed */}
                             {editMode ? (
                                 <div className="flex gap-2">
                                     <button
@@ -129,55 +127,8 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
-                    {/* AI Settings */}
-                    <div className="space-y-4 pt-4 border-t border-border">
-                        <h3 className="text-lg font-medium flex items-center gap-2">
-                            <Sparkles className="w-5 h-5 text-primary" />
-                            AI Preferences
-                        </h3>
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-muted-foreground">Preferred AI Provider</label>
-                                <div className="relative">
-                                    <select
-                                        value={aiProvider}
-                                        onChange={async (e) => {
-                                            const newVal = e.target.value as "groq" | "gemini" | "hybrid";
-                                            setAiProvider(newVal);
-                                            toast.promise(
-                                                updateProfile({ aiProvider: newVal }).then((data) => {
-                                                    updateUser({ ...user!, ...data });
-                                                }),
-                                                {
-                                                    loading: 'Updating preference...',
-                                                    success: 'AI Provider updated!',
-                                                    error: (err) => {
-                                                        console.error('Update failed:', err);
-                                                        return 'Failed to update setting. Please try after a while.';
-                                                    }
-                                                }
-                                            );
-                                        }}
-                                        className="w-full bg-muted/30 border border-border rounded-lg px-4 py-2.5 text-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 appearance-none cursor-pointer hover:bg-muted/50 transition-colors"
-                                    >
-                                        <option value="hybrid">✨ Hybrid (Smart Select)</option>
-                                        <option value="groq">⚡ Groq (Fastest)</option>
-                                        <option value="gemini">🧠 Gemini 3 Flash (Balanced)</option>
-                                    </select>
-                                    <div className="absolute right-3 top-3 pointer-events-none text-muted-foreground">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                                    </div>
-                                </div>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                Hybrid uses Groq for speed and switches to Gemini if rate limited.
-                            </p>
-                        </div>
-                    </div>
-
-
                     {/* Avatar */}
-                    <div className="flex items-center gap-4 mb-6 mt-6 pt-4 border-t border-border">
+                    <div className="flex items-center gap-4 mb-6 pt-4 border-t border-border">
                         <div className="h-16 w-16 rounded-full bg-primary/20 border-2 border-primary/30 flex items-center justify-center text-2xl font-bold text-primary">
                             {user?.name?.[0]?.toUpperCase() || "U"}
                         </div>
@@ -276,7 +227,60 @@ export default function ProfilePage() {
                     </div>
                 </motion.div>
 
-                {/* Liked & Saved Tabs */}
+                {/* 2. AI Preferences Section */}
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.05 }}
+                    className="glass rounded-2xl p-6 mb-6"
+                >
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-medium flex items-center gap-2">
+                            <Sparkles className="w-5 h-5 text-primary" />
+                            AI Preferences
+                        </h3>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-muted-foreground">Preferred AI Provider</label>
+                                <div className="relative">
+                                    <select
+                                        value={aiProvider}
+                                        onChange={async (e) => {
+                                            const newVal = e.target.value as "groq" | "gemini" | "hybrid";
+                                            setAiProvider(newVal);
+                                            toast.promise(
+                                                updateProfile({ aiProvider: newVal }).then((data) => {
+                                                    updateUser({ ...user!, ...data });
+                                                }),
+                                                {
+                                                    loading: 'Updating preference...',
+                                                    success: 'AI Provider updated!',
+                                                    error: (err) => {
+                                                        console.error('Update failed:', err);
+                                                        return 'Failed to update setting. Please try after a while.';
+                                                    }
+                                                }
+                                            );
+                                        }}
+                                        className="w-full bg-muted/30 border border-border rounded-lg px-4 py-2.5 text-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 appearance-none cursor-pointer hover:bg-muted/50 transition-colors"
+                                    >
+                                        <option value="hybrid">✨ Hybrid (Smart Select)</option>
+                                        <option value="groq">⚡ Groq (Fastest)</option>
+                                        <option value="gemini">🧠 Gemini 3 Flash (Balanced)</option>
+                                    </select>
+                                    <div className="absolute right-3 top-3 pointer-events-none text-muted-foreground">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
+                                </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Hybrid uses Groq for speed and switches to Gemini if rate limited.
+                            </p>
+                        </div>
+                    </div>
+                </motion.div>
+
+                {/* 3. Liked & Saved Tabs */}
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -318,9 +322,6 @@ export default function ProfilePage() {
                                             <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                                                 {article.topic || "News"}
                                             </span>
-                                            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                                <Clock className="h-3 w-3" /> {article.timeToRead || "3 min"}
-                                            </span>
                                             {article.source && (
                                                 <span className="text-[10px] text-muted-foreground font-medium">· {article.source}</span>
                                             )}
@@ -353,17 +354,60 @@ export default function ProfilePage() {
                     </div>
                 </motion.div>
 
-                {/* Sign Out */}
-                <div className="mt-6 text-center">
+                {/* Sign Out Button */}
+                <div className="mt-8 mb-4 text-center">
                     <button
-                        onClick={logout}
-                        className="text-sm text-muted-foreground hover:text-red-500 transition-colors"
+                        onClick={() => setShowLogoutConfirm(true)}
+                        className="px-6 py-2.5 rounded-xl bg-red-500/10 text-red-500 font-semibold hover:bg-red-500 hover:text-white transition-all duration-300 ring-1 ring-red-500/50 hover:ring-red-500"
                     >
                         Sign Out
                     </button>
                 </div>
-            </div >
-        </div >
+            </div>
+
+            {/* Confirmation Modal */}
+            <AnimatePresence>
+                {showLogoutConfirm && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 10 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 10 }}
+                            className="bg-card w-full max-w-sm rounded-2xl shadow-xl border border-border p-6 text-center"
+                        >
+                            <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center mx-auto mb-4">
+                                <AlertTriangle className="w-6 h-6" />
+                            </div>
+                            <h3 className="text-xl font-bold mb-2">Sign Out</h3>
+                            <p className="text-muted-foreground text-sm mb-6">
+                                Are you sure you want to sign out of your account?
+                            </p>
+                            <div className="flex gap-3 justify-center">
+                                <button
+                                    onClick={() => setShowLogoutConfirm(false)}
+                                    className="px-4 py-2 rounded-xl bg-muted text-foreground font-semibold hover:bg-muted/80 transition-colors flex-1"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowLogoutConfirm(false);
+                                        logout();
+                                    }}
+                                    className="px-4 py-2 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors flex-1 shadow-lg shadow-red-500/20"
+                                >
+                                    Yes, Sign Out
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     );
 }
-

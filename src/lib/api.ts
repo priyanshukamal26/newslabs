@@ -129,3 +129,9 @@ export const getSavedArticles = async () => {
     const { data } = await api.get('/user/saved');
     return data;
 };
+
+// Public Daily Brief
+export const getPublicDailyBrief = async (): Promise<{ articles: any[], cachedAt: string, expiresAt: string }> => {
+    const { data } = await api.get('/public/daily-brief');
+    return data;
+};

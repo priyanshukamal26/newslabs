@@ -1,0 +1,3 @@
+1. Trending Now feature:
+Currently, "Trending Now" checks the total number of times a word appears on articles. This results in random words like "best", "right", "2026" taking up trending slots.
+Future Improvement: Update the backend algorithm to use actual topic tagging or NLP to identify real trending themes. Also add functionality so that clicking on any topic in "Trending Now" applies a filter/search, showing the user all topics/articles that contain that trending word.

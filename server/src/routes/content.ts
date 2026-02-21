@@ -310,4 +310,134 @@ export async function contentRoutes(server: FastifyInstance) {
 
         return { topTrend, mostReadTopic, emerging: emergingTopic };
     });
+
+    // =========================================================================
+    // DAILY BRIEF ENDPOINT
+    //
+    // Returns 3 curated articles (AI, Science, Tech) updated every 6 hours.
+    // Categorization relies on the `topic` field assigned during indexing.
+    // =========================================================================
+
+    // In-memory cache for the daily brief
+    let cachedBrief: { articles: any[], timestamp: number } | null = null;
+    const CACHE_DURATION_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+    server.get('/daily-brief', async (request: FastifyRequest, reply: FastifyReply) => {
+        const now = Date.now();
+
+        // Return cached brief if it's still valid
+        if (cachedBrief && (now - cachedBrief.timestamp) < CACHE_DURATION_MS) {
+            return {
+                articles: cachedBrief.articles,
+                cachedAt: new Date(cachedBrief.timestamp).toISOString(),
+                expiresAt: new Date(cachedBrief.timestamp + CACHE_DURATION_MS).toISOString()
+            };
+        }
+
+        // Fetch feeds if we don't have enough articles (e.g. server just started)
+        let articles = store.getArticles();
+        if (articles.length === 0) {
+            await updateFeeds();
+            articles = store.getArticles();
+        }
+
+        // Helper to find highest quality article for a topic cluster
+        const getArticleForTopics = (targetTopics: string[], excludeIds: Set<string>) => {
+            // Sort by latest first (assuming higher ID or just relying on natural order which is latest first in RSS)
+            // But RSS feeds usually return latest first, store.addArticle appends, so reverse might be needed.
+            // Let's just find the first matching one that hasn't been used.
+            const candidates = articles.filter(a =>
+                a.topic && targetTopics.includes(a.topic) && !excludeIds.has(a.id || '')
+            );
+
+            // Prefer articles with summaries (if they have been clicked before) or just take the first one
+            return candidates.length > 0 ? candidates[0] : null;
+        };
+
+        const usedIds = new Set<string>();
+        const selectedArticles: any[] = [];
+
+        // 1. AI & ML Article
+        const aiArticle = getArticleForTopics(["AI & ML"], usedIds);
+        if (aiArticle) {
+            usedIds.add(aiArticle.id || '');
+            selectedArticles.push({
+                topic: "AI",
+                title: aiArticle.title || "Latest in AI",
+                time: aiArticle.timeToRead || "3 min",
+                summary: (aiArticle.summary && aiArticle.summary !== "Click to analyze")
+                    ? aiArticle.summary
+                    : "Discover the latest advancements in artificial intelligence and machine learning models.",
+                link: aiArticle.link
+            });
+        }
+
+        // 2. Science Article
+        const scienceArticle = getArticleForTopics(["Science", "Space", "Health", "Climate"], usedIds);
+        if (scienceArticle) {
+            usedIds.add(scienceArticle.id || '');
+            selectedArticles.push({
+                topic: "Science",
+                title: scienceArticle.title || "Scientific Breakthroughs",
+                time: scienceArticle.timeToRead || "4 min",
+                summary: (scienceArticle.summary && scienceArticle.summary !== "Click to analyze")
+                    ? scienceArticle.summary
+                    : "Explore recent discoveries pushing the boundaries of scientific research.",
+                link: scienceArticle.link
+            });
+        }
+
+        // 3. Tech Article
+        const techArticle = getArticleForTopics(["Web Dev", "DevOps", "Security", "Crypto", "Tech"], usedIds);
+        if (techArticle) {
+            usedIds.add(techArticle.id || '');
+            selectedArticles.push({
+                topic: "Tech",
+                title: techArticle.title || "Technology Trends",
+                time: techArticle.timeToRead || "2 min",
+                summary: (techArticle.summary && techArticle.summary !== "Click to analyze")
+                    ? techArticle.summary
+                    : "Stay up to date with the newest frameworks, tools, and developer ecosystems.",
+                link: techArticle.link
+            });
+        }
+
+        // Fallbacks if we didn't find 3 specific articles
+        for (const article of articles) {
+            if (selectedArticles.length >= 3) break;
+            if (!usedIds.has(article.id || '')) {
+                usedIds.add(article.id || '');
+                selectedArticles.push({
+                    topic: article.topic || "News",
+                    title: article.title || "Latest News",
+                    time: article.timeToRead || "3 min",
+                    summary: (article.summary && article.summary !== "Click to analyze")
+                        ? article.summary
+                        : "A notable update from your personalized news feed curated today.",
+                    link: article.link
+                });
+            }
+        }
+
+        // Update cache ONLY if we have actual articles
+        if (selectedArticles.length > 0) {
+            cachedBrief = {
+                articles: selectedArticles,
+                timestamp: now
+            };
+        } else {
+            // Push fallbacks to return but DO NOT cache them
+            selectedArticles.push(
+                { topic: "AI", title: "Wait for feed to load...", summary: "Fetching the latest news. Please refresh." },
+                { topic: "Science", title: "Wait for feed to load...", summary: "Fetching the latest news. Please refresh." },
+                { topic: "Tech", title: "Wait for feed to load...", summary: "Fetching the latest news. Please refresh." }
+            );
+        }
+
+        return {
+            articles: selectedArticles,
+            cachedAt: new Date(now).toISOString(),
+            expiresAt: new Date(now + (selectedArticles[0]?.title === "Wait for feed to load..." ? 0 : CACHE_DURATION_MS)).toISOString()
+        };
+    });
 }

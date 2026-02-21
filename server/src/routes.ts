@@ -13,4 +13,5 @@ export async function appRoutes(server: FastifyInstance) {
     server.register(authRoutes, { prefix: '/api/auth' });
     server.register(aiRoutes, { prefix: '/api/ai' });
     server.register(userRoutes, { prefix: '/api/user' });
+    server.register(contentRoutes, { prefix: '/api/public' }); // Reusing contentRoutes for the public endpoints
 }

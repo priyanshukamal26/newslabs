@@ -344,7 +344,6 @@ export default function DashboardPage() {
           return ta - tb;
         }
         case "most-liked": return (b.likes || 0) - (a.likes || 0);
-        case "reading-time": return parseInt(a.timeToRead || "99") - parseInt(b.timeToRead || "99");
         case "newest":
         default: {
           const ta = parseDateSafe(a.pubDate), tb = parseDateSafe(b.pubDate);
@@ -505,7 +504,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Trending */}
+              {/* Trending - Commented out for now
               <div className="pt-4 border-t border-border">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1">
                   <Flame className="h-3 w-3" /> Trending Now
@@ -520,6 +519,7 @@ export default function DashboardPage() {
                   ))}
                 </div>
               </div>
+              */}
 
               {/* Saved */}
               <div className="pt-4 border-t border-border">
@@ -631,8 +631,7 @@ export default function DashboardPage() {
                         {([
                           { label: "Newest First", value: "newest" },
                           { label: "Oldest First", value: "oldest" },
-                          { label: "Most Liked", value: "most-liked" },
-                          { label: "Shortest Read", value: "reading-time" },
+                          { label: "Most Liked", value: "most-liked" }
                         ] as const).map(opt => (
                           <button
                             key={opt.value}
@@ -776,9 +775,6 @@ export default function DashboardPage() {
                             {article.topic || "News"}
                           </span>
                         )}
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <Clock className="h-3 w-3" /> {article.timeToRead || article.time || "3 min"}
-                        </span>
                         {article.pubDate && (
                           <span className="text-[10px] text-muted-foreground" title={new Date(article.pubDate).toLocaleString()}>
                             · {timeAgo(article.pubDate)}
@@ -794,7 +790,7 @@ export default function DashboardPage() {
                             onClick={(e) => handleLike(e, article)}
                             className={`flex items-center gap-1 transition-all ${isLiked(article.id) ? 'text-red-500 scale-110' : 'hover:text-red-400'}`}
                           >
-                            <Heart className={`h-3.5 w-3.5 ${isLiked(article.id) ? 'fill-current' : ''}`} /> {article.likes || 0}
+                            <Heart className={`h-3.5 w-3.5 ${isLiked(article.id) ? 'fill-current' : ''}`} />
                           </button>
                           <button
                             onClick={(e) => handleShare(e, article)}
@@ -897,29 +893,7 @@ export default function DashboardPage() {
 
               <h2 className="text-xl font-bold mb-4">{selectedArticle.title}</h2>
 
-              <div className="flex items-center gap-4 text-xs text-muted-foreground mb-5 pb-4 border-b border-border">
-                <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {selectedArticle.timeToRead || selectedArticle.time || "3 min"} read</span>
-                <button
-                  onClick={(e) => handleLike(e, selectedArticle)}
-                  className={`flex items-center gap-1 transition-all ${isLiked(selectedArticle.id) ? 'text-red-500' : 'hover:text-red-400'}`}
-                >
-                  <Heart className={`h-3.5 w-3.5 ${isLiked(selectedArticle.id) ? 'fill-current' : ''}`} /> {selectedArticle.likes || 0}
-                </button>
-                <button
-                  onClick={(e) => handleSave(e, selectedArticle)}
-                  className={`flex items-center gap-1 transition-all ${isSaved(selectedArticle.id) ? 'text-primary' : 'hover:text-primary'}`}
-                >
-                  <Bookmark className={`h-3.5 w-3.5 ${isSaved(selectedArticle.id) ? 'fill-current' : ''}`} /> {isSaved(selectedArticle.id) ? 'Saved' : 'Save'}
-                </button>
-                <button
-                  onClick={(e) => handleShare(e, selectedArticle)}
-                  className="flex items-center gap-1 hover:text-primary transition-colors"
-                >
-                  <Share2 className="h-3 w-3" /> Share
-                </button>
-              </div>
-
-              <div className="space-y-5">
+              <div className="space-y-5 mt-4">
                 <div>
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
                     <Sparkles className="h-3 w-3 text-primary" /> AI Summary
@@ -994,6 +968,13 @@ export default function DashboardPage() {
 
                 <div className="flex items-center justify-between pt-3 border-t border-border">
                   <div className="flex items-center gap-3">
+                    <button
+                      onClick={(e) => handleLike(e, selectedArticle)}
+                      className={`flex items-center gap-1.5 text-xs transition-all ${isLiked(selectedArticle.id) ? 'text-red-500 scale-110' : 'text-muted-foreground hover:text-red-400'}`}
+                    >
+                      <Heart className={`h-3.5 w-3.5 ${isLiked(selectedArticle.id) ? 'fill-current' : ''}`} />
+                      Like
+                    </button>
                     <button
                       onClick={(e) => handleSave(e, selectedArticle)}
                       className={`flex items-center gap-1.5 text-xs transition-all ${isSaved(selectedArticle.id) ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}

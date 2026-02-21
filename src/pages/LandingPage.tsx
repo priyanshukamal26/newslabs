@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Sparkles, TrendingUp, BookOpen, Shield, Cpu, Rss, KeyRound, Brain, Lock, ArrowRight, Zap, Github, Linkedin } from "lucide-react";
+import { Sparkles, TrendingUp, BookOpen, Shield, Cpu, Rss, KeyRound, Brain, Lock, ArrowRight, Zap } from "lucide-react";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -63,7 +63,7 @@ function HeroSection() {
           className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10"
         >
           NewsLabs reads hundreds of articles so you don't have to.
-          Smart curation from legal, ethical sources — delivered to your inbox.
+          Smart curations from ethical sources.
         </motion.p>
 
         <motion.div
@@ -84,12 +84,24 @@ function HeroSection() {
   );
 }
 
+import { useQuery } from "@tanstack/react-query";
+import { getPublicDailyBrief } from "../lib/api";
+
 function NewsletterPreview() {
-  const articles = [
-    { topic: "AI", title: "GPT-5 Rumors: What We Know So Far", time: "3 min", summary: "Industry insiders reveal potential capabilities and timeline for the next generation model." },
-    { topic: "Tech", title: "WebAssembly 3.0 Proposal Gains Traction", time: "2 min", summary: "The new proposal introduces garbage collection and improved interop with JavaScript." },
-    { topic: "Science", title: "Quantum Computing Hits New Milestone", time: "4 min", summary: "Researchers achieve 1000+ logical qubit operations with error correction." },
-  ];
+  const { data, isLoading } = useQuery({
+    queryKey: ['public-daily-brief'],
+    queryFn: getPublicDailyBrief,
+    staleTime: 1000 * 60 * 60 * 6, // 6 hours
+    gcTime: 1000 * 60 * 60 * 6,
+  });
+
+  const articles = data?.articles || [];
+
+  const todayDate = new Date().toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
 
   return (
     <section className="py-24 px-6">
@@ -104,36 +116,52 @@ function NewsletterPreview() {
             Your Daily <span className="text-gradient">Digest</span>, Previewed
           </motion.h2>
           <motion.p variants={fadeUp} custom={1} className="text-muted-foreground max-w-lg mx-auto">
-            Here's what a typical NewsLabs newsletter looks like — smart, concise, actionable.
+            Here's what a typical NewsLabs newsletter looks like - smart, concise, actionable.
           </motion.p>
         </motion.div>
 
-        <div className="glass rounded-2xl p-6 md:p-8 max-w-2xl mx-auto">
+        <div className="glass rounded-2xl p-6 md:p-8 max-w-2xl mx-auto min-h-[400px]">
           <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border">
             <Zap className="h-5 w-5 text-primary" />
             <span className="font-semibold text-sm">NewsLabs — Today's Brief</span>
-            <span className="ml-auto text-xs text-muted-foreground">Feb 15, 2026</span>
+            <span className="ml-auto text-xs text-muted-foreground">{todayDate}</span>
           </div>
           <div className="space-y-4">
-            {articles.map((article, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.15, duration: 0.4 }}
-                className="p-4 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors cursor-pointer group"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                    {article.topic}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">{article.time} read</span>
+            {isLoading ? (
+              // Loading Skeletons
+              Array.from({ length: 3 }).map((_, i) => (
+                <div key={`skeleton-${i}`} className="p-4 rounded-xl bg-muted/20 animate-pulse border border-border/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="h-4 w-16 bg-muted rounded-full"></div>
+                    <div className="h-3 w-12 bg-muted/50 rounded-full"></div>
+                  </div>
+                  <div className="h-4 w-3/4 bg-muted/80 rounded mb-2"></div>
+                  <div className="h-3 w-full bg-muted/50 rounded"></div>
+                  <div className="h-3 w-5/6 bg-muted/30 rounded mt-1"></div>
                 </div>
-                <h4 className="font-semibold text-sm mb-1 group-hover:text-primary transition-colors">{article.title}</h4>
-                <p className="text-xs text-muted-foreground">{article.summary}</p>
-              </motion.div>
-            ))}
+              ))
+            ) : (
+              articles.map((article, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.15, duration: 0.4 }}
+                  className="p-4 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors cursor-pointer group block"
+                >
+                  <a href={article.link || '#'} target="_blank" rel="noopener noreferrer" className="block">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                        {article.topic}
+                      </span>
+                    </div>
+                    <h4 className="font-semibold text-sm mb-1 group-hover:text-primary transition-colors line-clamp-1">{article.title}</h4>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{article.summary}</p>
+                  </a>
+                </motion.div>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -231,39 +259,7 @@ function TrustSection() {
   );
 }
 
-function Footer() {
-  return (
-    <footer className="border-t border-border py-10 px-6">
-      <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Zap className="h-4 w-4 text-primary" />
-          <span className="text-sm">
-            <span className="font-semibold">NewsLabs</span> by Priyanshu Kamal
-          </span>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="text-xs font-bold text-muted-foreground">Connect:</span>
-          <a
-            href="https://github.com/priyanshukamal26/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Github className="h-5 w-5" />
-          </a>
-          <a
-            href="https://www.linkedin.com/in/priyanshukamal/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Linkedin className="h-5 w-5" />
-          </a>
-        </div>
-      </div>
-    </footer>
-  );
-}
+
 
 export default function LandingPage() {
   return (
@@ -272,7 +268,6 @@ export default function LandingPage() {
       <FeaturesSection />
       <NewsletterPreview />
       <TrustSection />
-      <Footer />
     </div>
   );
 }
