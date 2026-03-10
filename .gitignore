@@ -12,6 +12,18 @@ dist
 dist-ssr
 *.local
 
+# Environment variable files (never commit secrets)
+.env
+.env.*
+!.env.example
+
+# SQLite local dev databases
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.db.bak
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

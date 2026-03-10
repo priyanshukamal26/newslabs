@@ -17,6 +17,7 @@ export interface Article {
     link: string;
     source: string;
     pubDate: string;
+    isoDate?: string;
     timeToRead?: string;
     time?: string;
     likes?: number;

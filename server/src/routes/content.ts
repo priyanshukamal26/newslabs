@@ -17,14 +17,15 @@ const categoryKeywords: Record<string, string[]> = {
     "Crypto": ["crypto", "bitcoin", "ethereum", "blockchain", "defi", "nft", "token", "web3", "mining", "wallet", "solana", "binance", "coinbase", "stablecoin", "dao"],
     "Design": ["design", "ui", "ux", "figma", "interface", "typography", "color", "layout", "prototype", "wireframe", "accessibility", "aesthetic", "branding", "logo"],
     "DevOps": ["devops", "docker", "kubernetes", "k8s", "ci/cd", "pipeline", "deploy", "infrastructure", "terraform", "aws", "azure", "gcp", "cloud", "server", "monitoring", "container", "linux", "nginx"],
-    "Security": ["security", "hack", "breach", "vulnerability", "malware", "phishing", "ransomware", "encryption", "firewall", "cyber", "privacy", "zero-day", "exploit", "password", "authentication"],
-    "Politics": ["politics", "election", "government", "congress", "senate", "president", "legislation", "policy", "democrat", "republican", "vote", "campaign", "regulation", "law", "court"],
-    "Business": ["business", "revenue", "profit", "market", "stock", "earnings", "ceo", "acquisition", "merger", "layoff", "company", "enterprise", "corporate", "industry", "economy", "trade", "gdp"],
-    "Health": ["health", "medical", "doctor", "hospital", "disease", "treatment", "vaccine", "drug", "fda", "clinical", "patient", "diagnosis", "surgery", "mental health", "wellness", "fitness"],
-    "Sports": ["sports", "nba", "nfl", "mlb", "soccer", "football", "basketball", "tennis", "golf", "olympics", "championship", "tournament", "athlete", "coach", "game", "match", "score"],
-    "Entertainment": ["movie", "film", "tv", "show", "netflix", "streaming", "music", "album", "concert", "celebrity", "actor", "director", "oscar", "emmy", "gaming", "playstation", "xbox", "nintendo"],
-    "Climate": ["climate", "carbon", "emissions", "renewable", "solar", "wind", "energy", "sustainability", "pollution", "warming", "environmental", "green", "electric vehicle", "ev", "battery"],
-    "Space": ["space", "nasa", "spacex", "rocket", "satellite", "mars", "moon", "orbit", "astronaut", "telescope", "galaxy", "asteroid", "launch", "cosmic", "starship", "james webb"],
+    "Security": ["security", "hack", "breach", "vulnerability", "malware", "phishing", "ransomware", "encryption", "firewall", "cyber", "privacy", "zero-day", "exploit", "password", "authentication", "scam", "fraud"],
+    "Politics": ["politics", "election", "government", "congress", "senate", "president", "legislation", "policy", "democrat", "republican", "vote", "campaign", "regulation", "law", "court", "parliament", "biden", "trump"],
+    "Business": ["business", "revenue", "profit", "market", "stock", "earnings", "ceo", "acquisition", "merger", "layoff", "company", "enterprise", "corporate", "industry", "economy", "trade", "gdp", "sensex", "nifty", "inflation", "bank", "rbi", "fed"],
+    "Health": ["health", "medical", "doctor", "hospital", "disease", "treatment", "vaccine", "drug", "fda", "clinical", "patient", "diagnosis", "surgery", "mental health", "wellness", "fitness", "cancer", "covid"],
+    "Sports": ["sports", "nba", "nfl", "mlb", "soccer", "football", "basketball", "tennis", "golf", "olympics", "championship", "tournament", "athlete", "coach", "game", "match", "score", "cricket", "ipl", "bcci", "kohli", "dhoni", "rohit", "messi", "ronaldo", "fifa", "wpl"],
+    "Entertainment": ["movie", "film", "tv", "show", "netflix", "streaming", "music", "album", "concert", "celebrity", "actor", "director", "oscar", "emmy", "gaming", "playstation", "xbox", "nintendo", "bollywood", "hollywood", "actor", "actress", "cinema", "box office", "trailer"],
+    "Climate": ["climate", "carbon", "emissions", "renewable", "solar", "wind", "energy", "sustainability", "pollution", "warming", "environmental", "green", "electric vehicle", "ev", "battery", "weather", "storm", "wildfire"],
+    "Space": ["space", "nasa", "spacex", "rocket", "satellite", "mars", "moon", "orbit", "astronaut", "telescope", "galaxy", "asteroid", "launch", "cosmic", "starship", "isro", "chandrayaan", "gaganyaan"],
+    "India": ["india", "modi", "bjp", "congress", "rahul gandhi", "delhi", "mumbai", "bengaluru", "chennai", "kolkata", "hyderabad", "kerala", "up", "bihar", "supreme court", "high court", "cbi", "ed", "lok sabha", "rajya sabha", "aap", "kejriwal", "yogi", "amit shah", "hindu", "muslim", "temple"],
 };
 
 function categorizeByTitle(title: string): string {
@@ -61,17 +62,28 @@ export async function contentRoutes(server: FastifyInstance) {
         const feeds = store.getFeeds();
         const newArticleIds: string[] = [];
 
-        for (const url of feeds) {
-            console.log(`Updating feed: ${url}`);
+        console.log(`Starting parallel fetch for ${feeds.length} feeds...`);
+
+        const fetchPromises = feeds.map(async (url) => {
             try {
                 const items = await rssService.fetchFeed(url);
+                return { url, items, status: 'fulfilled' as const };
+            } catch (error) {
+                console.error(`Failed to fetch feed ${url}:`, error);
+                return { url, error, status: 'rejected' as const };
+            }
+        });
+
+        const results = await Promise.allSettled(fetchPromises);
+
+        for (const result of results) {
+            if (result.status === 'fulfilled' && result.value.status === 'fulfilled') {
+                const items = result.value.items;
                 for (const item of items) {
                     const exists = store.getArticles().find(a => a.link === item.link);
                     if (!exists) {
                         const id = uuidv4();
                         const timeToRead = calculateReadingTime(item.contentSnippet || item.content || '');
-
-                        // Use string-matching categorization (instant, no API calls)
                         const topic = categorizeByTitle(item.title || '');
 
                         store.addArticle({
@@ -83,15 +95,15 @@ export async function contentRoutes(server: FastifyInstance) {
                             insights: [],
                             timeToRead,
                             likes: 0,
-                            categorizing: false, // No longer waiting for AI
+                            categorizing: false,
                         } as Article);
                         newArticleIds.push(id);
                     }
                 }
-            } catch (feedError) {
-                console.error(`Failed to fetch feed ${url}:`, feedError);
             }
         }
+
+        console.log(`Parallel fetch complete. Added ${newArticleIds.length} new articles.`);
 
         // =====================================================================
         // AI CATEGORIZATION - COMMENTED OUT (temporarily disabled)

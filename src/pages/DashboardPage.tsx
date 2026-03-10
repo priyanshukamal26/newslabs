@@ -330,23 +330,26 @@ export default function DashboardPage() {
 
   // Filtering and sorting
   const filtered = safeArticles
-    .filter(
-      (a) => (isAllSelected || activeTopics.includes(a.topic)) &&
-        (searchQuery === "" || a.title.toLowerCase().includes(searchQuery.toLowerCase()) || a.summary.toLowerCase().includes(searchQuery.toLowerCase()))
-    )
+    .filter((a) => {
+      const matchTopic = isAllSelected || activeTopics.includes(a.topic);
+      const matchSearch = searchQuery.trim() === "" ||
+        (a.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          a.summary?.toLowerCase().includes(searchQuery.toLowerCase()));
+      return matchTopic && matchSearch;
+    })
     .sort((a, b) => {
       switch (sortMode) {
         case "oldest": {
-          const ta = parseDateSafe(a.pubDate), tb = parseDateSafe(b.pubDate);
+          const ta = parseDateSafe(a.pubDate || a.isoDate), tb = parseDateSafe(b.pubDate || b.isoDate);
           if (!ta && !tb) return 0;
-          if (!ta) return 1; // no date → end
+          if (!ta) return 1;
           if (!tb) return -1;
           return ta - tb;
         }
         case "most-liked": return (b.likes || 0) - (a.likes || 0);
         case "newest":
         default: {
-          const ta = parseDateSafe(a.pubDate), tb = parseDateSafe(b.pubDate);
+          const ta = parseDateSafe(a.pubDate || a.isoDate), tb = parseDateSafe(b.pubDate || b.isoDate);
           if (!ta && !tb) return 0;
           if (!ta) return 1; // no date → end
           if (!tb) return -1;
@@ -354,6 +357,11 @@ export default function DashboardPage() {
         }
       }
     });
+
+  // Debug why filtered length is smaller than safeArticles length
+  if (filtered.length !== safeArticles.length) {
+    console.log("Feed Irregularity Debug: safeArticles=", safeArticles.length, " filtered=", filtered.length, " topics=", activeTopics, " all selected?", isAllSelected, " searchQuery=", searchQuery);
+  }
 
   // Paginated display: show only `displayCount` articles, load more on scroll
   const paginatedArticles = filtered.slice(0, displayCount);
