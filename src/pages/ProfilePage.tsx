@@ -1,406 +1,264 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-    User, Mail, Phone, Lock, Heart, Bookmark,
-    ChevronRight, ArrowLeft, X, Sparkles, AlertTriangle
-} from "lucide-react";
+import { User, Mail, Phone, Lock, Heart, Bookmark, ChevronRight, ArrowLeft, X, Sparkles, AlertTriangle, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../lib/auth";
-import {
-    getUserProfile, updateProfile, changePassword,
-    getLikedArticles, getSavedArticles, likeArticle, saveArticle
-} from "../lib/api";
+import { updateProfile, changePassword, getLikedArticles, getSavedArticles, likeArticle, saveArticle } from "../lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+
+const mono = { fontFamily: "'JetBrains Mono', monospace" };
+const serif = { fontFamily: "'Playfair Display', serif" };
+const bodyFont = { fontFamily: "'Lora', serif" };
+const sans = { fontFamily: "'Inter', sans-serif" };
+
+function NpInput({ value, onChange, placeholder, type = "text" }: { value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder?: string; type?: string; }) {
+    return (
+        <input type={type} value={value} onChange={onChange} placeholder={placeholder}
+            className="w-full pb-2 bg-transparent border-b-2 border-[#E5E5E0] focus:border-[#111111] outline-none text-sm text-[#111111] placeholder:text-neutral-300 transition-colors"
+            style={{ ...mono, borderRadius: 0 }} />
+    );
+}
 
 export default function ProfilePage() {
     const { user, updateUser, logout } = useAuth();
     const queryClient = useQueryClient();
-
     const [editMode, setEditMode] = useState(false);
     const [name, setName] = useState(user?.name || "");
     const [phone, setPhone] = useState(user?.phone || "");
     const [email, setEmail] = useState(user?.email || "");
     const [aiProvider, setAiProvider] = useState(user?.aiProvider || "hybrid");
-
     const [showPasswordForm, setShowPasswordForm] = useState(false);
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [passwordMsg, setPasswordMsg] = useState("");
-
-    // For confirm logout
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-
     const [activeTab, setActiveTab] = useState<"liked" | "saved">("liked");
 
-    const { data: likedArticles = [] } = useQuery({
-        queryKey: ['liked-articles'],
-        queryFn: getLikedArticles,
-    });
-
-    const { data: savedArticles = [] } = useQuery({
-        queryKey: ['saved-articles'],
-        queryFn: getSavedArticles,
-    });
+    const { data: likedArticles = [] } = useQuery({ queryKey: ["liked-articles"], queryFn: getLikedArticles });
+    const { data: savedArticles = [] } = useQuery({ queryKey: ["saved-articles"], queryFn: getSavedArticles });
 
     const profileMutation = useMutation({
         mutationFn: () => updateProfile({ name, phone, email, aiProvider }),
-        onSuccess: (data) => {
-            updateUser({ ...user!, ...data, topics: data.topics });
-            setEditMode(false);
-            toast.success("Profile updated");
-        },
+        onSuccess: (data) => { updateUser({ ...user!, ...data, topics: data.topics }); setEditMode(false); toast.success("Profile updated"); },
     });
 
     const passwordMutation = useMutation({
         mutationFn: () => changePassword(currentPassword, newPassword),
-        onSuccess: () => {
-            setPasswordMsg("Password changed!");
-            setCurrentPassword("");
-            setNewPassword("");
-            setTimeout(() => { setPasswordMsg(""); setShowPasswordForm(false); }, 2000);
-        },
+        onSuccess: () => { setPasswordMsg("Password changed!"); setCurrentPassword(""); setNewPassword(""); setTimeout(() => { setPasswordMsg(""); setShowPasswordForm(false); }, 2000); },
         onError: () => setPasswordMsg("Failed. Check current password."),
     });
 
     const unlikeMutation = useMutation({
         mutationFn: likeArticle,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['liked-articles'] });
-            queryClient.invalidateQueries({ queryKey: ['interactions'] });
-            queryClient.invalidateQueries({ queryKey: ['user-stats'] });
-            toast("Removed from likes", { duration: 2000 });
-        },
+        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["liked-articles"] }); queryClient.invalidateQueries({ queryKey: ["interactions"] }); toast("Removed from likes", { duration: 2000 }); },
     });
 
     const unsaveMutation = useMutation({
         mutationFn: saveArticle,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['saved-articles'] });
-            queryClient.invalidateQueries({ queryKey: ['interactions'] });
-            queryClient.invalidateQueries({ queryKey: ['user-stats'] });
-            toast("Removed from saved", { duration: 2000 });
-        },
+        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["saved-articles"] }); queryClient.invalidateQueries({ queryKey: ["interactions"] }); toast("Removed from saved", { duration: 2000 }); },
     });
 
-    useEffect(() => {
-        document.documentElement.classList.add('dark');
-    }, []);
+    const displayList: any[] = Array.isArray(activeTab === "liked" ? likedArticles : savedArticles) ? (activeTab === "liked" ? likedArticles : savedArticles) as any[] : [];
 
     return (
-        <div className="min-h-screen pt-24 pb-12 px-4 relative">
-            <div className="max-w-3xl mx-auto">
-                <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
-                    <ArrowLeft className="h-4 w-4" /> Back to Dashboard
+        <div className="min-h-screen bg-[#F9F9F7] pb-20"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 4 4'%3E%3Cpath fill='%23111111' fill-opacity='0.04' d='M1 3h1v1H1V3zm2-2h1v1H3V1z'%3E%3C/path%3E%3C/svg%3E")` }}>
+            <div className="max-w-2xl mx-auto px-4 pt-20">
+
+                <Link to="/dashboard" className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-500 hover:text-[#111111] transition-colors mb-8" style={sans}>
+                    <ArrowLeft className="h-3.5 w-3.5" /> Back to Dashboard
                 </Link>
 
-                {/* 1. Profile Section */}
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="glass rounded-2xl p-6 mb-6"
-                >
-                    <div className="flex items-center justify-between mb-6">
-                        <h1 className="text-2xl font-bold">Profile</h1>
-                        <div className="flex items-center gap-3">
-                            {editMode ? (
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => profileMutation.mutate()}
-                                        className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold"
-                                        disabled={profileMutation.isPending}
-                                    >
-                                        {profileMutation.isPending ? "Saving..." : "Save"}
+                {/* Masthead */}
+                <div className="border-b-2 border-[#111111] pb-5 mb-8">
+                    <p className="text-[9px] uppercase tracking-[0.28em] text-[#CC0000] mb-1" style={mono}>Reader Account</p>
+                    <h1 className="text-4xl font-black text-[#111111]" style={serif}>Your Profile</h1>
+                </div>
+
+                {/* Profile Card */}
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                    <div className="border border-[#111111] bg-white mb-6">
+                        <div className="flex items-center justify-between px-6 py-3.5 border-b border-[#111111]">
+                            <p className="text-[9px] uppercase tracking-[0.25em] text-neutral-500" style={mono}>Identity</p>
+                            <div className="flex gap-2">
+                                {editMode ? (
+                                    <>
+                                        <button onClick={() => profileMutation.mutate()} disabled={profileMutation.isPending}
+                                            className="px-4 py-1.5 bg-[#111111] text-[#F9F9F7] text-[10px] font-bold uppercase tracking-[0.15em] hover:bg-[#333] disabled:opacity-50 transition-colors" style={{ ...sans, borderRadius: 0 }}>
+                                            {profileMutation.isPending ? "Saving…" : "Save"}
+                                        </button>
+                                        <button onClick={() => setEditMode(false)}
+                                            className="px-4 py-1.5 border border-[#111111] text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500 hover:text-[#111111] transition-colors" style={{ ...sans, borderRadius: 0 }}>
+                                            Cancel
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button onClick={() => setEditMode(true)}
+                                        className="px-4 py-1.5 border border-[#111111] text-[10px] font-bold uppercase tracking-[0.15em] text-[#111111] hover:bg-[#111111] hover:text-[#F9F9F7] transition-all" style={{ ...sans, borderRadius: 0 }}>
+                                        Edit
                                     </button>
-                                    <button onClick={() => setEditMode(false)} className="p-1.5 rounded-lg glass text-muted-foreground">
-                                        <X className="h-4 w-4" />
-                                    </button>
+                                )}
+                            </div>
+                        </div>
+                        <div className="px-6 py-6 space-y-6">
+                            {/* Avatar */}
+                            <div className="flex items-center gap-4">
+                                <div className="h-14 w-14 border-2 border-[#111111] flex items-center justify-center text-2xl font-black text-[#111111] bg-[#F9F9F7]" style={serif}>
+                                    {user?.name?.[0]?.toUpperCase() || "U"}
                                 </div>
-                            ) : (
-                                <button
-                                    onClick={() => setEditMode(true)}
-                                    className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-semibold"
-                                >
-                                    Edit Profile
-                                </button>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Avatar */}
-                    <div className="flex items-center gap-4 mb-6 pt-4 border-t border-border">
-                        <div className="h-16 w-16 rounded-full bg-primary/20 border-2 border-primary/30 flex items-center justify-center text-2xl font-bold text-primary">
-                            {user?.name?.[0]?.toUpperCase() || "U"}
-                        </div>
-                        <div>
-                            <h2 className="text-lg font-semibold">{user?.name || "User"}</h2>
-                            <p className="text-sm text-muted-foreground">{user?.email}</p>
-                        </div>
-                    </div>
-
-                    {/* Profile Fields */}
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-3">
-                            <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                            {editMode ? (
-                                <input
-                                    value={name} onChange={e => setName(e.target.value)}
-                                    className="flex-1 px-3 py-2 rounded-lg bg-muted/30 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                                    placeholder="Full Name"
-                                />
-                            ) : (
-                                <span className="text-sm">{user?.name || "Not set"}</span>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                            {editMode ? (
-                                <input
-                                    value={email} onChange={e => setEmail(e.target.value)}
-                                    className="flex-1 px-3 py-2 rounded-lg bg-muted/30 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                                    placeholder="Email"
-                                />
-                            ) : (
-                                <span className="text-sm">{user?.email}</span>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-                            {editMode ? (
-                                <input
-                                    value={phone} onChange={e => setPhone(e.target.value)}
-                                    className="flex-1 px-3 py-2 rounded-lg bg-muted/30 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                                    placeholder="Phone Number"
-                                />
-                            ) : (
-                                <span className="text-sm">{user?.phone || "Not set"}</span>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Change Password */}
-                    <div className="mt-6 pt-4 border-t border-border">
-                        {showPasswordForm ? (
-                            <div className="space-y-3">
-                                <h3 className="text-sm font-semibold flex items-center gap-2">
-                                    <Lock className="h-4 w-4 text-primary" /> Change Password
-                                </h3>
-                                <input
-                                    type="password"
-                                    value={currentPassword}
-                                    onChange={e => setCurrentPassword(e.target.value)}
-                                    placeholder="Current Password"
-                                    className="w-full px-3 py-2 rounded-lg bg-muted/30 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                                />
-                                <input
-                                    type="password"
-                                    value={newPassword}
-                                    onChange={e => setNewPassword(e.target.value)}
-                                    placeholder="New Password (min 6 chars)"
-                                    className="w-full px-3 py-2 rounded-lg bg-muted/30 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                                />
-                                {passwordMsg && <p className="text-xs text-primary">{passwordMsg}</p>}
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => passwordMutation.mutate()}
-                                        disabled={passwordMutation.isPending || newPassword.length < 6}
-                                        className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50"
-                                    >
-                                        Update Password
-                                    </button>
-                                    <button
-                                        onClick={() => setShowPasswordForm(false)}
-                                        className="px-3 py-1.5 rounded-lg glass text-xs text-muted-foreground"
-                                    >
-                                        Cancel
-                                    </button>
+                                <div>
+                                    <p className="text-base font-bold text-[#111111]" style={serif}>{user?.name || "User"}</p>
+                                    <p className="text-xs text-neutral-500" style={mono}>{user?.email}</p>
                                 </div>
                             </div>
-                        ) : (
-                            <button
-                                onClick={() => setShowPasswordForm(true)}
-                                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                            >
-                                <Lock className="h-4 w-4" /> Change Password <ChevronRight className="h-3 w-3" />
-                            </button>
-                        )}
-                    </div>
-                </motion.div>
-
-                {/* 2. AI Preferences Section */}
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.05 }}
-                    className="glass rounded-2xl p-6 mb-6"
-                >
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-medium flex items-center gap-2">
-                            <Sparkles className="w-5 h-5 text-primary" />
-                            AI Preferences
-                        </h3>
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-muted-foreground">Preferred AI Provider</label>
-                                <div className="relative">
-                                    <select
-                                        value={aiProvider}
-                                        onChange={async (e) => {
-                                            const newVal = e.target.value as "groq" | "gemini" | "hybrid";
-                                            setAiProvider(newVal);
-                                            toast.promise(
-                                                updateProfile({ aiProvider: newVal }).then((data) => {
-                                                    updateUser({ ...user!, ...data });
-                                                }),
-                                                {
-                                                    loading: 'Updating preference...',
-                                                    success: 'AI Provider updated!',
-                                                    error: (err) => {
-                                                        console.error('Update failed:', err);
-                                                        return 'Failed to update setting. Please try after a while.';
-                                                    }
-                                                }
-                                            );
-                                        }}
-                                        className="w-full bg-muted/30 border border-border rounded-lg px-4 py-2.5 text-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 appearance-none cursor-pointer hover:bg-muted/50 transition-colors"
-                                    >
-                                        <option value="hybrid">✨ Hybrid (Smart Select)</option>
-                                        <option value="groq">⚡ Groq (Fastest)</option>
-                                        <option value="gemini">🧠 Gemini 3 Flash (Balanced)</option>
-                                    </select>
-                                    <div className="absolute right-3 top-3 pointer-events-none text-muted-foreground">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                                    </div>
+                            {/* Fields */}
+                            {[
+                                { label: "Full Name", val: name, set: setName, ph: "Full Name", type: "text" },
+                                { label: "Email", val: email, set: setEmail, ph: "Email address", type: "email" },
+                                { label: "Phone", val: phone, set: setPhone, ph: "Phone number", type: "text" },
+                            ].map(({ label, val, set, ph, type }) => (
+                                <div key={label}>
+                                    <p className="text-[9px] uppercase tracking-[0.2em] text-neutral-400 mb-1.5" style={mono}>{label}</p>
+                                    {editMode ? <NpInput value={val} onChange={e => set(e.target.value)} placeholder={ph} type={type} />
+                                        : <p className="text-sm text-[#111111]" style={bodyFont}>{val || <span className="text-neutral-300 italic">Not set</span>}</p>}
                                 </div>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                Hybrid uses Groq for speed and switches to Gemini if rate limited.
-                            </p>
-                        </div>
-                    </div>
-                </motion.div>
-
-                {/* 3. Liked & Saved Tabs */}
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="glass rounded-2xl p-6"
-                >
-                    <div className="flex gap-4 mb-6">
-                        <button
-                            onClick={() => setActiveTab("liked")}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === "liked" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
-                                }`}
-                        >
-                            <Heart className="h-4 w-4" /> Liked ({Array.isArray(likedArticles) ? likedArticles.length : 0})
-                        </button>
-                        <button
-                            onClick={() => setActiveTab("saved")}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === "saved" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
-                                }`}
-                        >
-                            <Bookmark className="h-4 w-4" /> Saved ({Array.isArray(savedArticles) ? savedArticles.length : 0})
-                        </button>
-                    </div>
-
-                    <div className="space-y-2">
-                        {(activeTab === "liked" ? likedArticles : savedArticles).length === 0 ? (
-                            <p className="text-center text-sm text-muted-foreground py-8">
-                                No {activeTab} articles yet. Start exploring your feed!
-                            </p>
-                        ) : (
-                            (activeTab === "liked" ? likedArticles : savedArticles).map((article: any) => (
-                                <div key={article.id} className="group flex items-start gap-3 p-3 rounded-xl hover:bg-muted/30 transition-colors border border-transparent hover:border-border/50">
-                                    <a
-                                        href={article.link || '#'}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex-1 min-w-0 block cursor-pointer"
-                                    >
-                                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                                            <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                                                {article.topic || "News"}
-                                            </span>
-                                            {article.source && (
-                                                <span className="text-[10px] text-muted-foreground font-medium">· {article.source}</span>
-                                            )}
+                            ))}
+                            {/* Password */}
+                            <div className="pt-5 border-t border-[#E5E5E0]">
+                                {showPasswordForm ? (
+                                    <div className="space-y-4">
+                                        <p className="text-[9px] uppercase tracking-[0.2em] text-neutral-400" style={mono}>Change Password</p>
+                                        <NpInput type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="Current password" />
+                                        <NpInput type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="New password (min 6 chars)" />
+                                        {passwordMsg && <p className="text-xs text-[#CC0000] border-l-2 border-[#CC0000] pl-2" style={bodyFont}>{passwordMsg}</p>}
+                                        <div className="flex gap-2">
+                                            <button onClick={() => passwordMutation.mutate()} disabled={passwordMutation.isPending || newPassword.length < 6}
+                                                className="px-4 py-2 bg-[#111111] text-[#F9F9F7] text-[10px] font-bold uppercase tracking-[0.15em] disabled:opacity-40 hover:bg-[#333] transition-colors" style={{ ...sans, borderRadius: 0 }}>
+                                                Update
+                                            </button>
+                                            <button onClick={() => setShowPasswordForm(false)}
+                                                className="px-4 py-2 border border-[#111111] text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500 hover:text-[#111111] transition-colors" style={{ ...sans, borderRadius: 0 }}>
+                                                Cancel
+                                            </button>
                                         </div>
-                                        <h4 className="text-sm font-semibold line-clamp-2 mb-1 group-hover:text-primary transition-colors">
-                                            {(article.title && article.title.trim()) || <span className="italic text-muted-foreground font-normal">Untitled article</span>}
+                                    </div>
+                                ) : (
+                                    <button onClick={() => setShowPasswordForm(true)} className="flex items-center gap-2 text-xs text-neutral-500 hover:text-[#111111] transition-colors" style={sans}>
+                                        <Lock className="h-3.5 w-3.5" /> Change Password <ChevronRight className="h-3 w-3" />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </motion.div>
+
+                {/* AI Preferences */}
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.07 }}>
+                    <div className="border border-[#111111] bg-white mb-6">
+                        <div className="px-6 py-3.5 border-b border-[#111111]">
+                            <p className="text-[9px] uppercase tracking-[0.25em] text-neutral-500 mb-0.5" style={mono}>AI Configuration</p>
+                            <p className="text-base font-bold text-[#111111] flex items-center gap-2" style={serif}><Sparkles className="h-4 w-4 text-[#CC0000]" /> AI Preferences</p>
+                        </div>
+                        <div className="px-6 py-6 space-y-4">
+                            <div>
+                                <p className="text-[9px] uppercase tracking-[0.2em] text-neutral-400 mb-2" style={mono}>Preferred AI Provider</p>
+                                <div className="relative">
+                                    <select value={aiProvider} onChange={async (e) => {
+                                        const newVal = e.target.value as "groq" | "gemini" | "hybrid";
+                                        setAiProvider(newVal);
+                                        toast.promise(updateProfile({ aiProvider: newVal }).then((data) => { updateUser({ ...user!, ...data }); }), {
+                                            loading: "Updating…", success: "AI Provider updated!", error: "Failed to update.",
+                                        });
+                                    }} className="w-full pb-2 bg-transparent border-b-2 border-[#E5E5E0] focus:border-[#111111] focus:outline-none text-sm text-[#111111] appearance-none cursor-pointer transition-colors" style={{ ...mono, borderRadius: 0 }}>
+                                        <option value="hybrid">Hybrid</option>
+                                        <option value="groq">Groq</option>
+                                        <option value="gemini">Gemini Flash</option>
+                                    </select>
+                                    <ChevronRight className="absolute right-0 top-1 h-3.5 w-3.5 text-neutral-400 rotate-90 pointer-events-none" />
+                                </div>
+                            </div>
+                            <p className="text-xs text-neutral-500 leading-relaxed border-l-2 border-[#E5E5E0] pl-3" style={bodyFont}>
+                                {aiProvider === "hybrid" && "Hybrid smartly uses Groq for speed and switches to Gemini if rate limited."}
+                                {aiProvider === "groq" && "Groq provides the ultimate lowest latency AI summaries, perfect for quick reads."}
+                                {aiProvider === "gemini" && "Gemini Flash provides balanced, high-quality analysis."}
+                            </p>
+                        </div>
+                    </div>
+                </motion.div>
+
+                {/* Liked & Saved */}
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14 }}>
+                    <div className="border border-[#111111] bg-white mb-8">
+                        <div className="flex border-b border-[#111111]">
+                            {([
+                                { key: "liked" as const, label: "Liked", icon: Heart, count: Array.isArray(likedArticles) ? likedArticles.length : 0 },
+                                { key: "saved" as const, label: "Saved", icon: Bookmark, count: Array.isArray(savedArticles) ? savedArticles.length : 0 },
+                            ]).map(tab => (
+                                <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] font-bold uppercase tracking-[0.2em] border-b-2 -mb-[1px] transition-colors ${activeTab === tab.key ? "border-[#111111] text-[#111111]" : "border-transparent text-neutral-400 hover:text-[#111111]"}`}
+                                    style={{ ...sans, borderRadius: 0 }}>
+                                    <tab.icon className="h-3.5 w-3.5" /> {tab.label} ({tab.count})
+                                </button>
+                            ))}
+                        </div>
+                        <div className="divide-y divide-[#E5E5E0]">
+                            {displayList.length === 0 ? (
+                                <p className="text-center text-sm text-neutral-400 py-10" style={bodyFont}>No {activeTab} articles yet.</p>
+                            ) : displayList.map((article: any) => (
+                                <div key={article.id} className="group flex items-start gap-4 px-6 py-4 hover:bg-neutral-50 transition-colors">
+                                    <a href={article.link || "#"} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                            <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#CC0000] border border-[#CC0000] px-1.5 py-0.5" style={mono}>{article.topic || "News"}</span>
+                                            {article.source && <span className="text-[10px] text-neutral-400" style={mono}>· {article.source}</span>}
+                                        </div>
+                                        <h4 className="text-sm font-bold text-[#111111] line-clamp-2 group-hover:text-[#CC0000] transition-colors" style={serif}>
+                                            {article.title || <span className="italic font-normal text-neutral-400">Untitled</span>}
                                         </h4>
                                         {article.summary && article.summary !== "Click to analyze" && (
-                                            <p className="text-xs text-muted-foreground line-clamp-1">{article.summary}</p>
+                                            <p className="text-xs text-neutral-500 line-clamp-1 mt-0.5" style={bodyFont}>{article.summary}</p>
                                         )}
                                     </a>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            e.preventDefault();
-                                            if (activeTab === "liked") {
-                                                unlikeMutation.mutate(article.id);
-                                            } else {
-                                                unsaveMutation.mutate(article.id);
-                                            }
-                                        }}
-                                        className="shrink-0 p-2 rounded-lg text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-all self-start mt-1"
-                                        title={activeTab === "liked" ? "Remove from liked" : "Remove from saved"}
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </button>
+                                    <div className="flex items-center gap-1 shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <a href={article.link || "#"} target="_blank" rel="noopener noreferrer" className="p-1 text-neutral-400 hover:text-[#111111] transition-colors"><ExternalLink className="h-3.5 w-3.5" /></a>
+                                        <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); activeTab === "liked" ? unlikeMutation.mutate(article.id) : unsaveMutation.mutate(article.id); }}
+                                            className="p-1 text-neutral-400 hover:text-[#CC0000] transition-colors" title="Remove" style={{ borderRadius: 0 }}>
+                                            <X className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
                                 </div>
-                            ))
-                        )}
+                            ))}
+                        </div>
                     </div>
                 </motion.div>
 
-                {/* Sign Out Button */}
-                <div className="mt-8 mb-4 text-center">
-                    <button
-                        onClick={() => setShowLogoutConfirm(true)}
-                        className="px-6 py-2.5 rounded-xl bg-red-500/10 text-red-500 font-semibold hover:bg-red-500 hover:text-white transition-all duration-300 ring-1 ring-red-500/50 hover:ring-red-500"
-                    >
+                {/* Sign Out */}
+                <div className="text-center mb-8">
+                    <button onClick={() => setShowLogoutConfirm(true)}
+                        className="px-6 py-2.5 border border-[#CC0000] text-[#CC0000] text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-[#CC0000] hover:text-white transition-all duration-150"
+                        style={{ ...sans, borderRadius: 0 }}>
                         Sign Out
                     </button>
                 </div>
             </div>
 
-            {/* Confirmation Modal */}
+            {/* Logout Modal */}
             <AnimatePresence>
                 {showLogoutConfirm && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
-                    >
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0, y: 10 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                            className="bg-card w-full max-w-sm rounded-2xl shadow-xl border border-border p-6 text-center"
-                        >
-                            <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center mx-auto mb-4">
-                                <AlertTriangle className="w-6 h-6" />
-                            </div>
-                            <h3 className="text-xl font-bold mb-2">Sign Out</h3>
-                            <p className="text-muted-foreground text-sm mb-6">
-                                Are you sure you want to sign out of your account?
-                            </p>
-                            <div className="flex gap-3 justify-center">
-                                <button
-                                    onClick={() => setShowLogoutConfirm(false)}
-                                    className="px-4 py-2 rounded-xl bg-muted text-foreground font-semibold hover:bg-muted/80 transition-colors flex-1"
-                                >
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#111111]/60" onClick={() => setShowLogoutConfirm(false)}>
+                        <motion.div initial={{ scale: 0.96, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 10 }}
+                            onClick={(e) => e.stopPropagation()} className="bg-[#F9F9F7] w-full max-w-sm border-2 border-[#111111] p-8 text-center">
+                            <div className="w-10 h-10 border border-[#CC0000] text-[#CC0000] flex items-center justify-center mx-auto mb-5"><AlertTriangle className="h-5 w-5" /></div>
+                            <h3 className="text-2xl font-black text-[#111111] mb-2" style={serif}>Sign Out?</h3>
+                            <p className="text-sm text-neutral-500 mb-8" style={bodyFont}>Are you sure you want to sign out of your account?</p>
+                            <div className="flex gap-3">
+                                <button onClick={() => setShowLogoutConfirm(false)}
+                                    className="flex-1 py-2.5 border border-[#111111] text-[10px] font-bold uppercase tracking-[0.18em] text-[#111111] hover:bg-neutral-100 transition-colors" style={{ ...sans, borderRadius: 0 }}>
                                     Cancel
                                 </button>
-                                <button
-                                    onClick={() => {
-                                        setShowLogoutConfirm(false);
-                                        logout();
-                                    }}
-                                    className="px-4 py-2 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors flex-1 shadow-lg shadow-red-500/20"
-                                >
+                                <button onClick={() => { setShowLogoutConfirm(false); logout(); }}
+                                    className="flex-1 py-2.5 bg-[#CC0000] text-white text-[10px] font-bold uppercase tracking-[0.18em] hover:bg-[#aa0000] transition-colors" style={{ ...sans, borderRadius: 0 }}>
                                     Yes, Sign Out
                                 </button>
                             </div>
