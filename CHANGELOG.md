@@ -9,11 +9,35 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Planned
 - Trending topic click-to-filter (apply search from Trending Now panel)
-- AI-powered NLP topic tagging (replacing keyword-match categorization)
 - Re-enable AI Chat once API rate-limit strategy is in place
 - Persistent article storage (database-backed, survives server restarts)
+- Naive Bayes model serialization (skip retraining on cold start)
 
 ---
+
+## [2.0.0] — Hybrid NLP Categorization Engine
+
+### Added
+- **Hybrid NLP Categorization Engine v4** — 4-layer pipeline:
+  1. Source Feed Bias (pre-weighted biases for 20+ known news sources)
+  2. Keyword Scoring with regex phrase matching and acronym handling
+  3. Naive Bayes NLP classifier (via `natural` npm package) with a **25% confidence threshold** — rejects low-confidence guesses; stricter **40% threshold** for Crypto, DevOps, Design, Web Dev
+  4. `World` and `General` catch-all categories — zero articles left uncategorized
+- **`World` category** — captures geopolitical news (wars, conflicts, UN, diplomatic events) that previously misfired into Crypto/DevOps
+- **`General` category** — safe bucket for genuinely un-categorizable articles
+- **India-First keyword expansion** — India keyword list grew from 25 → **100+ keywords** organized into 8 field groups: Politics & Government, Judiciary & Law, States & Cities (all 28 states), Economy & Finance, Corporates & Brands, Sports, Culture & Society, Defence & Infrastructure
+- **16 Indian news source biases**: The Hindu, NDTV, Times of India, India Today, Hindustan Times, Scroll, The Wire, Republic TV, ABP News, Aaj Tak, News18, Zee News, and more
+- **Expanded keyword lists** for all 18 categories (~2–3× growth per category): Crypto (token price, digital assets, altcoin, proof of stake…), Security (CVE, bug bounty, backdoor, DDoS…), Science (ecology, coral, wildlife, bird…), Sports (F1, UFC, pro kabaddi, squad…), Entertainment (Grammy, Cannes, K-pop, anime…), DevOps (serverless, GitOps, Helm, SRE…), and more
+- **NLP training corpus** expanded from 85 → **300+ labelled examples**, with 50 India-specific sentences and 20 new `World` examples
+- **`NLP Engine` status row** in the Status Dialog — Live health check via the `/health` endpoint's new `nlpClassifier` field
+- **`source name` passed to categorizer** — RSS feed title now flows into categorizeArticle to power source-bias at runtime
+
+### Fixed
+- Iran/Gaza/war articles previously misfired as "Crypto" by low-confidence NLP — now correctly bucketed into "World"
+- General BBC world news articles previously misfired as "DevOps" — now "World"
+- Design category now matches via NLP even without exact keyword hits (ui design, user experience phrases)
+- Regex phrase matching now safely escapes special characters in keywords (e.g. `c/c++`, `ci/cd`)
+
 
 ## [1.3.0] — Hybrid AI Mode & Profile Enhancements
 

@@ -18,8 +18,15 @@ Returns server status.
 
 **Response**
 ```json
-{ "status": "ok", "timestamp": "2025-01-01T00:00:00.000Z" }
+{
+  "status": "ok",
+  "timestamp": "2025-01-01T00:00:00.000Z",
+  "database": "connected",
+  "nlpClassifier": "ready"
+}
 ```
+> `nlpClassifier` values: `"ready"` | `"training"` | `"failed"`
+
 
 ---
 

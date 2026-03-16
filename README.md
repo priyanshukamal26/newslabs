@@ -10,6 +10,8 @@
 |---|---|
 | 📡 **RSS Feed Aggregation** | Pulls articles from dozens of curated tech/news RSS feeds in parallel |
 | 🤖 **AI Article Analysis** | On-demand Groq/Gemini-powered summaries, insights, and topic classification |
+| 🧠 **Hybrid NLP Categorization** | 4-layer engine: Source Feed Bias → Keyword Scoring → Naive Bayes NLP (with confidence threshold) → World/General catch-all. Achieves ~100% categorization rate |
+| 🌏 **India-First Coverage** | 100+ India-specific keywords across politics, states, economy, courts, corporates, sports, culture, and defence — plus 16 Indian source feed biases |
 | 🔥 **Trending Topics** | Algorithmic word-frequency analysis of live article titles |
 | 📋 **Daily Brief** | Auto-curated top-3 articles across AI, Science, and Tech (6h cache) |
 | ❤️ **Like & Save** | Persist favourite and bookmarked articles across sessions via PostgreSQL |
@@ -18,6 +20,7 @@
 | 🌙 **Dark / Light Mode** | Persisted per-user in the database |
 | 🔐 **JWT Auth** | Secure email/password authentication with bcrypt + JWT tokens |
 | 🎨 **AI Provider Switch** | Per-user preference: `groq`, `gemini`, or `hybrid` |
+| 💚 **NLP Engine Status** | Live NLP classifier health surfaced in the Status Dialog (`/health` endpoint) |
 
 ---
 
@@ -220,9 +223,15 @@ Push to GitHub, connect Render, and add all env vars from the table above.
 
 ## 📁 Topic Categories
 
-Articles are auto-categorized into one of 17 topics using keyword matching:
+Articles are auto-categorized into one of **19 topics** using the 4-layer hybrid NLP engine:
 
-`AI & ML` · `Web Dev` · `Science` · `Startups` · `Crypto` · `Design` · `DevOps` · `Security` · `Politics` · `Business` · `Health` · `Sports` · `Entertainment` · `Climate` · `Space` · `India` · `Uncategorized`
+`AI & ML` · `Web Dev` · `Science` · `Startups` · `Crypto` · `Design` · `DevOps` · `Security` · `Politics` · `Business` · `Health` · `Sports` · `Entertainment` · `Climate` · `Space` · `India` · `World` · `General`
+
+> **How categorization works:**
+> 1. **Layer 0 — Source Feed Bias** — Known feeds (ScienceDaily, ESPN, TechCrunch, NDTV…) pre-weight toward their domain.
+> 2. **Layer 1 — Keyword Scoring** — Title and content snippet are scored against 100+ keywords per category.
+> 3. **Layer 2 — NLP Classifier** — Naive Bayes fallback, only fires above a 25% confidence threshold (40% for prone-to-misfire categories like Crypto/DevOps).
+> 4. **Layer 3/4 — World / General** — Remaining articles bucket into geopolitical `World` or a safe `General` catch-all. Zero articles left uncategorized.
 
 ---
 
@@ -230,8 +239,8 @@ Articles are auto-categorized into one of 17 topics using keyword matching:
 
 - **Trending Now** currently uses word frequency (not NLP). Future: integrate real topic-tagging.
 - **AI Chat** is temporarily disabled to prevent API rate-limit exhaustion.
-- **AI Categorization** on feed fetch is disabled for the same reason; keyword matching is used instead.
 - Clicking a **trending topic** does not yet filter articles — this is a planned feature.
+- The Naive Bayes NLP model is retrained on every server cold-start; persistent model serialization is a planned optimization.
 
 See [`future_improvements.txt`](./future_improvements.txt) for more details.
 

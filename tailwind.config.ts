@@ -14,9 +14,30 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
+        // Newsprint design system fonts
+        serif: ["'Playfair Display'", "'Times New Roman'", "serif"],
+        body: ["'Lora'", "Georgia", "serif"],
+        sans: ["'Inter'", "'Helvetica Neue'", "sans-serif"],
+        mono: ["'JetBrains Mono'", "'Courier New'", "monospace"],
       },
       colors: {
+        // Newsprint design tokens
+        ink: "#111111",
+        paper: "#F9F9F7",
+        "editorial-red": "#CC0000",
+        "divider-grey": "#E5E5E0",
+
+        // Neutral scale
+        neutral: {
+          100: "#F5F5F5",
+          200: "#E5E5E5",
+          400: "#A3A3A3",
+          500: "#737373",
+          600: "#525252",
+          700: "#404040",
+        },
+
+        // Shadcn/Radix compatibility tokens (kept for Dashboard/Profile pages)
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -66,9 +87,12 @@ export default {
         },
       },
       borderRadius: {
+        // Restore original for Dashboard/Profile shadcn compatibility.
+        // Newsprint public pages use inline style={{ borderRadius: 0 }} — not these classes.
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        full: "9999px",
       },
       keyframes: {
         "accordion-down": {
@@ -79,6 +103,18 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "marquee": {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
+        "marquee-vertical": {
+          "0%": { transform: "translateY(0)" },
+          "100%": { transform: "translateY(-50%)" },
+        },
+        "slide-up": {
+          "0%": { opacity: "0", transform: "translateY(20px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
         "float": {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-10px)" },
@@ -87,17 +123,15 @@ export default {
           "0%, 100%": { opacity: "0.4" },
           "50%": { opacity: "0.8" },
         },
-        "slide-up": {
-          "0%": { opacity: "0", transform: "translateY(30px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
-        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "marquee": "marquee 30s linear infinite",
+        "marquee-vertical": "marquee-vertical 30s linear infinite",
+        "slide-up": "slide-up 0.5s ease-out",
         "float": "float 6s ease-in-out infinite",
         "pulse-glow": "pulse-glow 3s ease-in-out infinite",
-        "slide-up": "slide-up 0.6s ease-out",
       },
     },
   },

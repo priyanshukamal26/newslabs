@@ -72,6 +72,7 @@ export class AiService {
                     messages: [{
                         role: 'user',
                         content: `Classify this news article into exactly ONE topic from this list: AI & ML, Web Dev, Science, Startups, Crypto, Design, DevOps, Security, Politics, Business, Health, Sports, Entertainment, Climate, Space.
+CRITICAL INSTRUCTION: If the article discusses nothing from the list, choose the closest generic one or 'Uncategorized'. Be highly accurate. Do NOT guess blindly. Focus strictly on the core theme.
 
 Title: "${title}"
 Snippet: "${(snippet || '').substring(0, 500)}"
@@ -103,19 +104,19 @@ Article content:
 
 Respond with a JSON object following this exact structure:
 {
-  "summary": "A detailed 4-5 sentence summary. Cover: what happened, who is involved, the broader context, and the immediate impact. Be specific with names, numbers, and facts. Avoid vague generalities.",
+  "summary": "A detailed 4-5 sentence summary. Cover: what happened, who is involved, the broader context, and the immediate impact. CRITICAL REQUIREMENT: NEVER use vague terms like 'a company', 'the product', or 'an official'. ALWAYS use the exact names of companies, people, and products (e.g. 'Apple', 'Tim Cook', 'Vision Pro'). Explicitly list specific product features and concrete facts.",
   "insights": [
-    "Insight 1: A specific takeaway or implication",
-    "Insight 2: How this connects to broader trends",
-    "Insight 3: What this means for the industry or public",
-    "Insight 4: A notable detail or statistic from the article",
-    "Insight 5: Potential future implications"
+    "Insight 1: A specific takeaway or implication with concrete details.",
+    "Insight 2: How this connects to broader trends using exact names/technologies.",
+    "Insight 3: What this means for the industry or public.",
+    "Insight 4: A notable detail, feature, or statistic from the article.",
+    "Insight 5: Potential future implications."
   ],
-  "why": "A 2-sentence explanation of why this article matters to someone keeping up with current events. Be concrete about the stakes.",
+  "why": "A 2-sentence explanation of why this article matters. Be concrete about the stakes involving the specific entities.",
   "topic": "Classify into exactly ONE: AI & ML, Web Dev, Science, Startups, Crypto, Design, DevOps, Security, Politics, Business, Health, Sports, Entertainment, Climate, Space"
 }
 
-Important: Make the summary substantive and informative — a reader should understand the full story without reading the original article.
+Important: Make the summary substantive and informative — a reader should understand the full story without reading the original article. Focus on high-density information.
     `;
 
         const MAX_RETRIES = 2;

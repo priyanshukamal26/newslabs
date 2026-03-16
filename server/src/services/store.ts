@@ -4,6 +4,7 @@ export interface Article extends FeedItem {
     id: string;
     summary: string;
     topic: string;
+    topics?: string[];
     why: string;
     insights: string[];
     timeToRead: string;
@@ -79,7 +80,7 @@ export class Store {
         // Ars Technica
         // Deep technical journalism: cybersecurity, hardware,
         // operating systems, research-level analysis, space & science tech.
-        this.feeds.push('https://feeds.arstechnica.com/arstechnica/index');
+        // this.feeds.push('https://feeds.arstechnica.com/arstechnica/index');
 
         // Wired (Official RSS)
         // Technology + culture + AI + long-form investigative reporting.
@@ -104,7 +105,7 @@ export class Store {
         // Lifehacker
         // Productivity tools, consumer apps, digital lifestyle,
         // practical tech usage tips for everyday users.
-        this.feeds.push('https://lifehacker.com/feed/rss');
+        // this.feeds.push('https://lifehacker.com/feed/rss');
 
 
         // =======================
@@ -159,12 +160,18 @@ export class Store {
         // ESPN - General Sports
         // Global sports coverage: football (soccer), cricket,
         // NBA, tennis, Formula 1, international tournaments.
-        this.feeds.push('https://sports.espn.go.com/espn/rss/news');
+        // this.feeds.push('https://sports.espn.go.com/espn/rss/news');
 
 
         // =======================
         // 🇮🇳 INDIAN NEWS SOURCES
         // =======================
+
+        // The Hindu - National
+        this.feeds.push('https://www.thehindu.com/news/national/?service=rss');
+
+        // The Hindu - Sports
+        this.feeds.push('https://www.thehindu.com/sport/?service=rss');
 
         // Times of India - Main Feed
         // One of India's largest newspapers. National politics,
@@ -174,12 +181,15 @@ export class Store {
         // NDTV - Latest News
         // Indian politics, business, technology,
         // global affairs, policy developments.
-        this.feeds.push('https://feeds.feedburner.com/NDTV-LatestNews');
+        // this.feeds.push('https://feeds.feedburner.com/NDTV-LatestNews');
 
         // Indian Express - Full Feed
         // Investigative journalism, governance analysis,
         // public policy, legal developments.
         this.feeds.push('https://indianexpress.com/feed/');
+
+        // Indian Express - Business
+        this.feeds.push('https://indianexpress.com/section/business/feed/');
 
         // Firstpost
         // Indian politics, opinion pieces,
@@ -189,11 +199,11 @@ export class Store {
         // ABP News - Home
         // Indian national and regional news,
         // mass audience political reporting.
-        this.feeds.push('https://www.abplive.com/home/feed');
+        // this.feeds.push('https://www.abplive.com/home/feed');
 
         // ABP - India
         // India-focused national news updates.
-        this.feeds.push('https://www.abplive.com/news/india/feed');
+        // this.feeds.push('https://www.abplive.com/news/india/feed');
 
         // ABP - World
         // International coverage from Indian perspective.
@@ -201,12 +211,12 @@ export class Store {
 
         // ABP - Sports
         // Indian + international sports coverage.
-        this.feeds.push('https://www.abplive.com/sports/feed');
+        // this.feeds.push('https://www.abplive.com/sports/feed');
 
         // ABP - Bollywood
         // Indian entertainment industry, film releases,
         // celebrity news.
-        this.feeds.push('https://www.abplive.com/entertainment/bollywood/feed');
+        // this.feeds.push('https://www.abplive.com/entertainment/bollywood/feed');
 
         // Hindustan Times - Latest
         // Indian national news, business,

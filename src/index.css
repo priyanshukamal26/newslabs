@@ -1,11 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+/* ── Newsprint Design System: Font Imports ─────────────────────────── */
+/* Added Playfair Display, Lora, JetBrains Mono for newsprint public pages */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400&family=Lora:ital,wght@0,400;0,600;1,400&display=block');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design Tokens ──────────────────────────────────────────────────── */
 @layer base {
   :root {
+    /* ── Original dark theme (Dashboard / Profile) ── */
     --background: 220 20% 6%;
     --foreground: 210 40% 93%;
 
@@ -34,6 +38,7 @@
     --input: 220 15% 18%;
     --ring: 195 100% 50%;
 
+    /* Original radius — Dashboard uses rounded-xl, rounded-2xl etc. */
     --radius: 0.75rem;
 
     --sidebar-background: 220 20% 8%;
@@ -45,53 +50,152 @@
     --sidebar-border: 220 15% 18%;
     --sidebar-ring: 195 100% 50%;
 
-    /* Custom tokens */
+    /* Glass / glow tokens (Dashboard uses these) */
     --glow-primary: 195 100% 50%;
     --glow-secondary: 260 80% 60%;
     --glass: 220 20% 12%;
     --glass-border: 220 15% 22%;
+
+    /* Newsprint palette — used directly by public pages via hardcoded hex */
+    --np-paper: #F9F9F7;
+    --np-ink: #111111;
+    --np-red: #CC0000;
+    --np-muted: #E5E5E0;
   }
 }
 
+/* ── Base Reset ─────────────────────────────────────────────────────── */
 @layer base {
   * {
     @apply border-border;
+    /* NOTE: No global border-radius override here — Dashboard needs its own radii.
+       Newsprint public pages apply sharp corners via inline style={{ borderRadius: 0 }}. */
   }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 }
 
+/* ── Newsprint Utility Classes (scoped — used only on public pages) ─── */
 @layer utilities {
+
+  /* Typography aliases */
+  .font-display {
+    font-family: 'Playfair Display', 'Times New Roman', serif;
+  }
+
+  .font-body-text {
+    font-family: 'Lora', Georgia, serif;
+  }
+
+  .font-ui {
+    font-family: 'Inter', 'Helvetica Neue', sans-serif;
+  }
+
+  .font-data {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+  }
+
+  /* Newsprint explicit sharp override (apply manually where needed) */
+  .sharp {
+    border-radius: 0px !important;
+  }
+
+  /* Fine graph-paper texture overlay (used on sections in public pages) */
+  .newsprint-texture {
+    position: relative;
+  }
+
+  .newsprint-texture::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(0deg, transparent 98%, rgba(0, 0, 0, 0.025) 100%),
+      linear-gradient(90deg, transparent 98%, rgba(0, 0, 0, 0.025) 100%);
+    background-size: 3px 3px;
+    pointer-events: none;
+    opacity: 0.6;
+    z-index: 0;
+  }
+
+  .newsprint-texture>* {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Hard-offset newspaper cut-out hover (public page interactive cards) */
+  .hard-shadow-hover {
+    transition: box-shadow 0.15s ease-out, transform 0.15s ease-out;
+  }
+
+  .hard-shadow-hover:hover {
+    box-shadow: 4px 4px 0px 0px #111111;
+    transform: translate(-2px, -2px);
+  }
+
+  /* Editorial red underline on hover */
+  .editorial-link {
+    text-decoration: none;
+    text-underline-offset: 4px;
+    text-decoration-color: #CC0000;
+    text-decoration-thickness: 2px;
+  }
+
+  .editorial-link:hover {
+    text-decoration: underline;
+  }
+
+  /* Inverted section (ink-black background, public pages only) */
+  .section-inverted {
+    background-color: #111111;
+    color: #F9F9F7;
+  }
+
+  /* ── Original Dashboard utilities (restored) ── */
   .glass {
     @apply bg-glass/60 backdrop-blur-xl border border-glass-border/50;
   }
+
   .glow-primary {
     box-shadow: 0 0 30px -5px hsl(var(--glow-primary) / 0.3);
   }
+
   .glow-secondary {
     box-shadow: 0 0 30px -5px hsl(var(--glow-secondary) / 0.3);
   }
+
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
   }
+
   .gradient-mesh {
-    background: 
+    background:
       radial-gradient(ellipse at 20% 50%, hsl(var(--glow-primary) / 0.08) 0%, transparent 50%),
       radial-gradient(ellipse at 80% 20%, hsl(var(--glow-secondary) / 0.06) 0%, transparent 50%),
       radial-gradient(ellipse at 50% 80%, hsl(var(--glow-primary) / 0.04) 0%, transparent 50%);
   }
+
+  /* Marquee */
+  .marquee-track {
+    display: flex;
+    width: max-content;
+    animation: marquee 30s linear infinite;
+  }
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
 }
 
-/* Custom minimal scrollbar — matches dark glass UI */
+/* ── Scrollbar — matches dark glass UI (Dashboard) ──────────────────── */
 * {
   scrollbar-width: thin;
   scrollbar-color: hsl(220 15% 25%) transparent;
@@ -121,7 +225,6 @@
   background: transparent;
 }
 
-/* Make scrollbar invisible when not scrolling (shows on hover) */
 .glass::-webkit-scrollbar-thumb {
   background-color: hsl(220 15% 20%);
 }
@@ -129,4 +232,3 @@
 .glass:hover::-webkit-scrollbar-thumb {
   background-color: hsl(220 15% 30%);
 }
-

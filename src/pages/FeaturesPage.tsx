@@ -1,42 +1,49 @@
 import { motion } from "framer-motion";
-import { Sparkles, TrendingUp, BookOpen, Shield, Cpu, Rss, KeyRound, Layers, BarChart3, Bell, Globe, Palette, Brain, FileText, Mail, Scale, Rocket } from "lucide-react";
+import {
+  Sparkles, TrendingUp, BookOpen, Shield, Cpu, Rss, KeyRound,
+  Layers, BarChart3, Bell, Globe, Palette, Brain, FileText,
+  Mail, Scale, Rocket, ArrowRight,
+} from "lucide-react";
+import { Link } from "react-router-dom";
 
+/* ── Variants ──────────────────────────────────────────────────────── */
 const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
+  hidden: { opacity: 0, y: 24 },
   visible: (i: number) => ({
     opacity: 1, y: 0,
-    transition: { delay: i * 0.08, duration: 0.5, ease: "easeOut" as const },
+    transition: { delay: i * 0.07, duration: 0.4, ease: "easeOut" as const },
   }),
 };
 
+/* ── Data ──────────────────────────────────────────────────────────── */
 const features = [
-  { icon: Rss, title: "Smart Feed Aggregation", desc: "Connect RSS feeds, newsletters, and official APIs. All legal, all ethical.", category: "Input" },
-  { icon: Sparkles, title: "AI Summarization", desc: "GPT-powered summaries that capture the essence of every article.", category: "Processing" },
+  { icon: Rss, title: "Smart Feed Aggregation", desc: "Connect your favorite RSS feeds, podcasts, and official APIs. All legal, all ethical.", category: "Input" },
+  { icon: Sparkles, title: "AI Summarization", desc: "GPT-powered summaries that capture the essence of every article from your sources.", category: "Processing" },
   { icon: TrendingUp, title: "Trend Detection", desc: "Identify emerging topics across your feeds before they go mainstream.", category: "Analysis" },
-  { icon: BookOpen, title: "Personalized Digests", desc: "Topic-based newsletters tailored to your interests and reading habits.", category: "Output" },
-  { icon: Layers, title: "Multi-Source Merging", desc: "Combine content from dozens of sources into one clean, unified digest.", category: "Processing" },
+  { icon: BookOpen, title: "Personalized Feeds", desc: "Your aggregated content, separated by topics and delivered seamlessly.", category: "Output" },
+  { icon: Layers, title: "Multi-Source Merging", desc: "Combine content from dozens of sources into one clean, unified timeline.", category: "Processing" },
   { icon: BarChart3, title: "Reading Analytics", desc: "Track what you read, how long you engage, and discover patterns.", category: "Analysis" },
-  { icon: Bell, title: "Smart Notifications", desc: "Get notified only about content that matches your priority topics.", category: "Output" },
+  { icon: Bell, title: "Smart Notifications", desc: "Get pinged only about real-time content that matches your priority topics.", category: "Output" },
   { icon: Shield, title: "Compliance & Ethics", desc: "Built on open standards. No web scraping. Full transparency.", category: "Trust" },
   { icon: Globe, title: "Multi-Language Support", desc: "Curate and summarize content across multiple languages.", category: "Processing" },
   { icon: KeyRound, title: "API Access", desc: "Integrate NewsLabs into your own tools with our developer API.", category: "Developer" },
-  { icon: Cpu, title: "Fully Automated", desc: "Set your preferences once. Your digest is generated and delivered daily.", category: "Output" },
-  { icon: Palette, title: "Custom Branding", desc: "White-label your newsletters with your own brand and style.", category: "Output" },
+  { icon: Cpu, title: "Fully Automated", desc: "Set your preferences once. Your dashboard stays updated around the clock.", category: "Output" },
+  { icon: Palette, title: "Custom Dashboard", desc: "Organize your reading views with your own preferred layouts.", category: "Output" },
 ];
 
 const steps = [
-  { icon: Rss, title: "Fetch Feeds", desc: "We pull content from RSS feeds and official APIs — no scraping involved.", color: "primary" },
-  { icon: Brain, title: "AI Reads Content", desc: "Our AI engine processes and understands every article's context and meaning.", color: "primary" },
-  { icon: FileText, title: "Summarize & Tag", desc: "Articles are summarized into concise insights and tagged by topic automatically.", color: "accent" },
-  { icon: TrendingUp, title: "Trend Analysis", desc: "Cross-reference topics to detect emerging trends and patterns.", color: "accent" },
-  { icon: Mail, title: "Newsletter Generation", desc: "A personalized, beautifully formatted newsletter is generated and delivered.", color: "primary" },
+  { icon: Rss, num: "01", title: "Fetch Feeds", desc: "You provide the sources. We pull content from their RSS feeds and official APIs — no scraping involved." },
+  { icon: Brain, num: "02", title: "AI Reads Content", desc: "Our AI engine processes and understands every article's context and meaning from the raw feed text." },
+  { icon: FileText, num: "03", title: "Summarize & Tag", desc: "Articles are summarized into concise insights and tagged by topic automatically." },
+  { icon: TrendingUp, num: "04", title: "Trend Analysis", desc: "We cross-reference topics across your feeds to detect emerging trends and patterns." },
+  { icon: Mail, num: "05", title: "Live Dashboard", desc: "A personalized, beautifully formatted dashboard automatically updates with your new content." },
 ];
 
-const sections = [
+const docsEthics = [
   {
     icon: Rss,
     title: "Legal Sources Only",
-    content: "NewsLabs exclusively uses RSS feeds and official public APIs to aggregate content. We never scrape websites, bypass paywalls, or access content without authorization. Every piece of content in your digest comes from sources that explicitly provide feeds for public consumption.",
+    content: "NewsLabs exclusively uses RSS feeds and official public APIs to aggregate content. We never scrape websites, bypass paywalls, or access content without authorization. Every piece of content you see comes from sources that explicitly provide feeds for public consumption.",
   },
   {
     icon: Shield,
@@ -51,140 +58,230 @@ const sections = [
   {
     icon: Rocket,
     title: "Roadmap",
-    content: "We're building the future of ethical content curation. Upcoming features include: advanced personalization engines, team collaboration tools, custom branding for white-label newsletters, API access for developers, and multi-language support. Our mission is to make knowledge accessible — the right way.",
+    content: "We're building the future of ethical content curation. Upcoming features include: advanced personalization engines, team collaboration tools, custom dashboard layouts, API access for developers, and multi-language support. Our mission is to make knowledge accessible — the right way.",
   },
 ];
 
+/* ── Page ──────────────────────────────────────────────────────────── */
 export default function FeaturesPage() {
   return (
-    <div className="min-h-screen pt-28 pb-20 px-6">
-      <div className="max-w-6xl mx-auto space-y-32">
-        {/* --- Core Features Section --- */}
-        <section>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-16"
+    <div className="min-h-screen bg-[#F9F9F7]">
+
+      {/* ── Page masthead ── */}
+      <div className="border-b-2 border-[#111111]">
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-8 py-14 lg:py-20">
+          <p
+            className="text-[10px] uppercase tracking-[0.25em] text-[#CC0000] mb-3"
+            style={{ fontFamily: "'JetBrains Mono', monospace" }}
           >
-            <h1 className="text-4xl md:text-5xl font-extrabold mb-4">
-              Powerful <span className="text-gradient">Features</span>
-            </h1>
-            <p className="text-muted-foreground max-w-xl mx-auto text-lg">
-              Everything you need to curate, summarize, and deliver intelligent newsletters.
+            Full Coverage
+          </p>
+          <h1
+            className="text-5xl md:text-7xl font-black text-[#111111] leading-[0.92] tracking-tight mb-6"
+            style={{ fontFamily: "'Playfair Display', serif" }}
+          >
+            Powerful <em style={{ fontStyle: "italic" }}>Features</em>
+          </h1>
+          <p
+            className="text-lg sm:text-xl text-neutral-600 max-w-2xl leading-relaxed"
+            style={{ fontFamily: "'Lora', serif" }}
+          >
+            Everything you need to aggregate your favorite feeds, summarize them with AI, and experience a real-time, intelligent news dashboard — built entirely on open standards.
+          </p>
+        </div>
+      </div>
+
+      {/* ── Feature grid ── */}
+      <section className="border-b-2 border-[#111111]" aria-label="Core features">
+        <div className="max-w-screen-xl mx-auto">
+          <div
+            className="border-b border-[#111111] px-4 sm:px-8 py-4"
+          >
+            <p
+              className="text-[10px] uppercase tracking-[0.25em] text-neutral-500"
+              style={{ fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              Section A — Core Capabilities
             </p>
-          </motion.div>
+          </div>
 
           <motion.div
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
             initial="hidden"
             animate="visible"
-            className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"
           >
             {features.map((f, i) => (
               <motion.div
                 key={f.title}
                 variants={fadeUp}
                 custom={i}
-                whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                className="glass rounded-2xl p-6 hover:border-primary/30 transition-colors cursor-default group"
+                className={`
+                  p-6 sm:p-8 border-b border-[#111111] group cursor-default hard-shadow-hover
+                  ${i % 3 !== 2 ? "lg:border-r" : ""}
+                  ${i % 2 === 0 ? "sm:border-r lg:border-r-0" : "sm:border-r-0"}
+                  ${i % 2 === 0 && i % 3 !== 2 ? "sm:border-r lg:border-r" : ""}
+                `}
               >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                    <f.icon className="h-4 w-4 text-primary" />
+                <div className="flex items-center gap-3 mb-4">
+                  <div
+                    className="w-12 h-12 border border-[#111111] flex items-center justify-center bg-white text-[#111111] group-hover:bg-[#111111] group-hover:text-[#F9F9F7] transition-all duration-150"
+                  >
+                    <f.icon className="h-5 w-5" strokeWidth={1.5} />
                   </div>
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{f.category}</span>
+                  <span
+                    className="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-500"
+                    style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                  >
+                    {f.category}
+                  </span>
                 </div>
-                <h3 className="font-semibold mb-2">{f.title}</h3>
-                <p className="text-sm text-muted-foreground">{f.desc}</p>
+                <h3
+                  className="font-bold text-lg sm:text-xl text-[#111111] mb-2"
+                  style={{ fontFamily: "'Playfair Display', serif" }}
+                >
+                  {f.title}
+                </h3>
+                <p
+                  className="text-base text-neutral-600 leading-relaxed"
+                  style={{ fontFamily: "'Lora', serif" }}
+                >
+                  {f.desc}
+                </p>
               </motion.div>
             ))}
           </motion.div>
-        </section>
+        </div>
+      </section>
 
-        {/* --- How It Works Section --- */}
-        <section className="max-w-3xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl md:text-4xl font-extrabold mb-4">
-              How It <span className="text-gradient">Works</span>
-            </h2>
-            <p className="text-muted-foreground text-lg max-w-lg mx-auto">
-              From feed to inbox in five intelligent steps.
+      {/* ── How It Works — inverted section ── */}
+      <section className="section-inverted border-b-2 border-[#111111] newsprint-texture" aria-label="How it works">
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-8 py-16 lg:py-20">
+          <div className="border-b border-neutral-700 pb-6 mb-12">
+            <p
+              className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2"
+              style={{ fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              Section B — Pipeline
             </p>
-          </motion.div>
+            <h2
+              className="text-4xl md:text-5xl font-black text-[#F9F9F7] leading-tight"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+            >
+              How It <em style={{ fontStyle: "italic" }}>Works</em>
+            </h2>
+          </div>
 
-          <div className="relative">
-            {/* Vertical line */}
-            <div className="absolute left-6 top-0 bottom-0 w-px bg-gradient-to-b from-primary/50 via-accent/50 to-transparent" />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
+            {/* Sidebar copy */}
+            <div className="lg:col-span-4 lg:border-r border-neutral-700 lg:pr-10 mb-10 lg:mb-0">
+              <p
+                className="text-lg text-neutral-400 leading-relaxed lg:max-w-md"
+                style={{ fontFamily: "'Lora', serif" }}
+              >
+                From your favorite RSS feeds to an intelligent dashboard in five steps. NewsLabs automates the entire pipeline — set your sources once and access a live, curated feed anytime.
+              </p>
+              <div className="mt-8">
+                <Link
+                  to="/auth"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-[#CC0000] text-white text-xs font-bold uppercase tracking-[0.18em] border border-[#CC0000] hover:bg-white hover:text-[#111111] hover:border-white transition-all duration-150"
+                  style={{ fontFamily: "'Inter', sans-serif" }}
+                >
+                  Get Started <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            </div>
 
-            <div className="space-y-12">
+            {/* Steps */}
+            <div className="lg:col-span-8 lg:pl-10 space-y-0 divide-y divide-neutral-700">
               {steps.map((step, i) => (
                 <motion.div
                   key={step.title}
-                  initial={{ opacity: 0, x: -20 }}
+                  initial={{ opacity: 0, x: 16 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: i * 0.1, duration: 0.5 }}
-                  className="relative flex gap-6 items-start"
+                  transition={{ delay: i * 0.1, duration: 0.4 }}
+                  className="flex items-start gap-6 py-6 group"
                 >
-                  {/* Node */}
-                  <div className="relative z-10 h-12 w-12 shrink-0 rounded-xl bg-muted flex items-center justify-center border border-border">
-                    <step.icon className="h-5 w-5 text-primary" />
+                  {/* Step number */}
+                  <div
+                    className="text-3xl font-black text-[#CC0000] leading-none shrink-0 w-12 text-right"
+                    style={{ fontFamily: "'JetBrains Mono', monospace" }}
+                  >
+                    {step.num}
                   </div>
 
-                  {/* Content */}
-                  <div className="glass rounded-2xl p-5 flex-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1 block">Step {i + 1}</span>
-                    <h3 className="font-semibold text-lg mb-1">{step.title}</h3>
-                    <p className="text-sm text-muted-foreground">{step.desc}</p>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <step.icon className="h-5 w-5 text-neutral-400" strokeWidth={1.5} />
+                      <h3
+                        className="text-lg font-bold text-[#F9F9F7]"
+                        style={{ fontFamily: "'Playfair Display', serif" }}
+                      >
+                        {step.title}
+                      </h3>
+                    </div>
+                    <p
+                      className="text-base text-neutral-400 leading-relaxed"
+                      style={{ fontFamily: "'Lora', serif" }}
+                    >
+                      {step.desc}
+                    </p>
                   </div>
                 </motion.div>
               ))}
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* --- Docs & Ethics Section --- */}
-        <section className="max-w-3xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl md:text-4xl font-extrabold mb-4">
-              Docs & <span className="text-gradient">Ethics</span>
-            </h2>
-            <p className="text-muted-foreground text-lg">
-              How we build an ethical, legal, and transparent AI newsletter platform.
+      {/* ── Docs & Ethics ── */}
+      <section className="border-b-2 border-[#111111]" aria-label="Docs and ethics">
+        <div className="max-w-screen-xl mx-auto">
+          <div className="border-b border-[#111111] px-4 sm:px-8 py-4">
+            <p
+              className="text-[10px] uppercase tracking-[0.25em] text-neutral-500"
+              style={{ fontFamily: "'JetBrains Mono', monospace" }}
+            >
+              Section C — Docs & Ethics
             </p>
-          </motion.div>
+          </div>
 
-          <div className="space-y-8">
-            {sections.map((s, i) => (
+          <div className="grid grid-cols-1 md:grid-cols-2">
+            {docsEthics.map((s, i) => (
               <motion.div
                 key={s.title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="glass rounded-2xl p-6 md:p-8"
+                className={`p-8 border-b border-[#111111] ${i % 2 === 0 ? "md:border-r" : ""}`}
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <s.icon className="h-5 w-5 text-primary" />
+                  <div className="w-10 h-10 border border-[#CC0000] text-[#CC0000] flex items-center justify-center shrink-0">
+                    <s.icon className="h-4 w-4" strokeWidth={1.5} />
                   </div>
-                  <h3 className="text-xl font-bold">{s.title}</h3>
+                  <h3
+                    className="text-xl font-bold text-[#111111]"
+                    style={{ fontFamily: "'Playfair Display', serif" }}
+                  >
+                    {s.title}
+                  </h3>
                 </div>
-                <p className="text-sm text-muted-foreground leading-relaxed">{s.content}</p>
+                {/* Red left-border blockquote style */}
+                <div className="border-l-2 border-[#CC0000] pl-5">
+                  <p
+                    className="text-base text-neutral-600 leading-relaxed text-justify"
+                    style={{ fontFamily: "'Lora', serif" }}
+                  >
+                    {s.content}
+                  </p>
+                </div>
               </motion.div>
             ))}
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
+
     </div>
   );
 }
