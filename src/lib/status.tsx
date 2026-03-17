@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { Globe, Server, Database, Brain, LucideIcon } from "lucide-react";
 
 const API_BASE = ((import.meta as any).env?.VITE_API_URL as string || "http://localhost:3000/api").replace(/\/api\/?$/, "");
@@ -39,6 +39,12 @@ export function StatusProvider({ children }: { children: React.ReactNode }) {
     const [lastPing, setLastPing] = useState(Date.now());
     const [isDetailsOpen, setDetailsOpen] = useState(false);
 
+    // Track consecutive DB failures using a ref to avoid stale closure issues.
+    // We only mark DB as degraded after 2 consecutive failures to avoid false
+    // alarms during Render cold starts where the first health check may fail
+    // transiently even though the DB is actually reachable.
+    const dbFailCount = useRef(0);
+
     const setService = useCallback((id: string, patch: Partial<Service>) => {
         setServices((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
     }, []);
@@ -53,7 +59,8 @@ export function StatusProvider({ children }: { children: React.ReactNode }) {
         // Ping API & DB
         const t0Backend = performance.now();
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15_000);
+        // Extended timeout to accommodate Render free-tier cold starts (can take 30-50s)
+        const timeout = setTimeout(() => controller.abort(), 20_000);
 
         try {
             const res = await fetch(`${API_BASE}/health`, { signal: controller.signal, cache: "no-store" });
@@ -67,22 +74,44 @@ export function StatusProvider({ children }: { children: React.ReactNode }) {
 
             const dbOk = body?.database === "connected";
             const dbLatency = body?.dbLatency ?? (latency + 5);
-            const nlpStatus = body?.nlpClassifier;
 
             setService("render", { status: "operational", latency, detail: "Render Backend" });
-            setService("supabase", {
-                status: dbOk ? "operational" : "degraded",
-                latency: dbOk ? dbLatency : null,
-                detail: dbOk ? "Supabase Postgres" : "Database Unreachable / Cold Start",
-            });
+
+            if (dbOk) {
+                // DB confirmed healthy — reset failure counter and show green
+                dbFailCount.current = 0;
+                setService("supabase", {
+                    status: "operational",
+                    latency: dbLatency,
+                    detail: "Supabase Postgres",
+                });
+            } else {
+                // DB check failed — only commit to "degraded" after 2+ consecutive
+                // failures to avoid flipping on a single transient cold-start error.
+                dbFailCount.current += 1;
+                if (dbFailCount.current >= 2) {
+                    setService("supabase", {
+                        status: "degraded",
+                        latency: null,
+                        detail: "Database Unreachable / Cold Start",
+                    });
+                } else {
+                    // First failure: stay as "checking" and give it another poll cycle
+                    setService("supabase", {
+                        status: "checking",
+                        latency: null,
+                        detail: "Supabase Postgres",
+                    });
+                }
+            }
             // setService("nlp", {
-            //     status: nlpStatus === "ready" ? "operational" : nlpStatus === "training" ? "degraded" : "down",
-            //     latency: nlpStatus === "ready" ? latency : null,
-            //     detail: nlpStatus === "ready" ? "Naive Bayes Classifier" : nlpStatus === "training" ? "Training on startup..." : "Classifier failed to load",
+            //     status: body?.nlpClassifier === "ready" ? "operational" : body?.nlpClassifier === "training" ? "degraded" : "down",
+            //     latency: body?.nlpClassifier === "ready" ? latency : null,
+            //     detail: body?.nlpClassifier === "ready" ? "Naive Bayes Classifier" : body?.nlpClassifier === "training" ? "Training on startup..." : "Classifier failed to load",
             // });
         } catch (err: any) {
             const latency = Math.round(performance.now() - t0Backend);
-            const isTimeout = err?.name === "AbortError" || latency >= 14_000;
+            const isTimeout = err?.name === "AbortError" || latency >= 19_000;
             const isColdStart = latency > 4_000 && !isTimeout;
 
             setService("render", {
@@ -90,11 +119,23 @@ export function StatusProvider({ children }: { children: React.ReactNode }) {
                 latency: isTimeout ? null : latency,
                 detail: isColdStart ? "Render cold start — warming up..." : "Backend offline or unreachable",
             });
-            setService("supabase", {
-                status: "degraded",
-                detail: "Status unknown — API unreachable",
-                latency: null,
-            });
+
+            // API unreachable — increment DB fail counter but apply same grace period
+            dbFailCount.current += 1;
+            if (dbFailCount.current >= 2) {
+                setService("supabase", {
+                    status: "degraded",
+                    detail: "Status unknown — API unreachable",
+                    latency: null,
+                });
+            } else {
+                // Stay as "checking" on first failure
+                setService("supabase", {
+                    status: "checking",
+                    detail: "Status unknown — API unreachable",
+                    latency: null,
+                });
+            }
         } finally {
             clearTimeout(timeout);
             setLastPing(Date.now());
