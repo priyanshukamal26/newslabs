@@ -38,6 +38,7 @@ export function StatusProvider({ children }: { children: React.ReactNode }) {
     const [services, setServices] = useState<Service[]>(INITIAL);
     const [lastPing, setLastPing] = useState(Date.now());
     const [isDetailsOpen, setDetailsOpen] = useState(false);
+    const [hasCompletedInitialCheck, setHasCompletedInitialCheck] = useState(false);
 
     // Track consecutive DB failures using a ref to avoid stale closure issues.
     // We only mark DB as degraded after 2 consecutive failures to avoid false
@@ -139,6 +140,7 @@ export function StatusProvider({ children }: { children: React.ReactNode }) {
         } finally {
             clearTimeout(timeout);
             setLastPing(Date.now());
+            setHasCompletedInitialCheck(true);
         }
     }, [setService]);
 
@@ -154,12 +156,12 @@ export function StatusProvider({ children }: { children: React.ReactNode }) {
 
     // Dynamic polling based on the LATEST state results
     useEffect(() => {
-        if (isChecking) return; // Wait until initial check finishes
+        if (!hasCompletedInitialCheck) return; // Wait until initial check finishes
 
         const intervalMs = isGreen ? 5 * 60 * 1000 : 5 * 1000;
         const timer = setInterval(checkHealth, intervalMs);
         return () => clearInterval(timer);
-    }, [isGreen, isChecking, checkHealth, lastPing]);
+    }, [isGreen, hasCompletedInitialCheck, checkHealth, lastPing]);
 
     return (
         <StatusContext.Provider value={{ services, isGreen, isDegraded, isChecking, lastPing, isDetailsOpen, setDetailsOpen, checkHealth }}>
