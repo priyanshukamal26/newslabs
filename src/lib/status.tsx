@@ -94,14 +94,14 @@ export function StatusProvider({ children }: { children: React.ReactNode }) {
                     setService("supabase", {
                         status: "degraded",
                         latency: null,
-                        detail: "Database Unreachable / Cold Start",
+                        detail: body.error || "Database Unreachable / Cold Start",
                     });
                 } else {
                     // First failure: stay as "checking" and give it another poll cycle
                     setService("supabase", {
                         status: "checking",
                         latency: null,
-                        detail: "Supabase Postgres",
+                        detail: "Retrying connection...",
                     });
                 }
             }
@@ -133,7 +133,7 @@ export function StatusProvider({ children }: { children: React.ReactNode }) {
                 // Stay as "checking" on first failure
                 setService("supabase", {
                     status: "checking",
-                    detail: "Status unknown — API unreachable",
+                    detail: "Retrying connection...",
                     latency: null,
                 });
             }
@@ -158,10 +158,11 @@ export function StatusProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (!hasCompletedInitialCheck) return; // Wait until initial check finishes
 
-        const intervalMs = isGreen ? 5 * 60 * 1000 : 5 * 1000;
+        // Use 15s if something is broken to be easier on the DB, 5s if recovering, 5m if healthy
+        const intervalMs = isGreen ? 5 * 60 * 1000 : isDegraded ? 15000 : 5000;
         const timer = setInterval(checkHealth, intervalMs);
         return () => clearInterval(timer);
-    }, [isGreen, hasCompletedInitialCheck, checkHealth, lastPing]);
+    }, [isGreen, isDegraded, hasCompletedInitialCheck, checkHealth, lastPing]);
 
     return (
         <StatusContext.Provider value={{ services, isGreen, isDegraded, isChecking, lastPing, isDetailsOpen, setDetailsOpen, checkHealth }}>

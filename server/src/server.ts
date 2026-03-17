@@ -13,9 +13,7 @@ server.register(cors, {
     allowedHeaders: ['Content-Type', 'Authorization']
 });
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from './lib/prisma';
 
 // Expose NLP classifier readiness from the content routes module
 import { getNlpStatus } from './routes/content';
@@ -23,16 +21,23 @@ import { getNlpStatus } from './routes/content';
 server.get('/health', async (request, reply) => {
     const start = performance.now();
     try {
-        // Ping the database to check if it's reachable (avoids full query overhead)
-        await prisma.$queryRaw`SELECT 1`;
+        // Use a model-based query instead of raw SQL to match exactly how other routes work.
+        // This confirms the connection pool is healthy and the ORM is mapping correctly.
+        await prisma.user.count();
         const dbLatency = Math.round(performance.now() - start);
         return { status: 'ok', database: 'connected', dbLatency, nlpClassifier: getNlpStatus(), timestamp: new Date().toISOString() };
     } catch (error: any) {
-        server.log.error('Database health check failed:', error.message);
+        server.log.error({
+            message: error.message,
+            stack: error.stack,
+            code: error.code,
+            meta: error.meta
+        }, 'Database health check failed');
+        
         return reply.status(503).send({ 
             status: 'error', 
             database: 'disconnected', 
-            error: error.message,
+            error: error.message || 'Unknown database error',
             nlpClassifier: getNlpStatus(),
             timestamp: new Date().toISOString() 
         });
