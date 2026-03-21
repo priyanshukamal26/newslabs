@@ -3,7 +3,6 @@ import { store, Article } from '../services/store';
 import { rssService } from '../services/rss';
 import { aiService } from '../services/ai';
 import { v4 as uuidv4 } from 'uuid';
-import prisma from '../lib/prisma';
 import natural from 'natural';
 import fs from 'fs';
 import path from 'path';
@@ -589,10 +588,13 @@ export async function contentRoutes(server: FastifyInstance) {
                 const jwt = require('jsonwebtoken');
                 const decoded = jwt.decode(token) as { userId: string };
                 if (decoded?.userId) {
+                    const { PrismaClient } = require('@prisma/client');
+                    const prisma = new PrismaClient();
                     const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
                     if (user?.aiProvider) {
                         aiProvider = user.aiProvider;
                     }
+                    await prisma.$disconnect();
                 }
             }
         } catch (e) {

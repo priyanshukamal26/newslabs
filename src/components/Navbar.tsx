@@ -108,7 +108,7 @@ export function Navbar() {
                     await checkHealth();
                   } finally {
                     setDetailsOpen(true);
-                    setTimeout(() => setDetailsOpen(false), 3000);
+                    setTimeout(() => setDetailsOpen(false), 5000);
                   }
                 }}
                 disabled={isChecking}

@@ -54,24 +54,38 @@ export function StatusBar() {
     // Top banner dismissed state
     const [dismissedTop, setDismissedTop] = useState(false);
 
-    const autoCloseBottomTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    // Auto dismiss banners when all operational
+    // Unconditionally dismiss top banner after 10 seconds
     useEffect(() => {
-        if (!isChecking && isGreen) {
-            autoCloseBottomTimer.current = setTimeout(() => {
+        const timer = setTimeout(() => {
+            setDismissedTop(true);
+        }, 10000);
+        return () => clearTimeout(timer);
+    }, []);
+
+    // Auto-close timer for the bottom status bar
+    useEffect(() => {
+        // Show the bar initially on refresh/mount
+        setDismissedBottom(false);
+        
+        const timer = setTimeout(() => {
+            if (!isDetailsOpen) {
                 setDismissedBottom(true);
-                setDismissedTop(true);
-            }, 4000);
-        } else if (!isGreen && isDegraded) {
-            // Keep top banner open if there are issues during a real cold start
-            setDismissedTop(false);
-            setDismissedBottom(false);
+            }
+        }, 5000);
+        
+        return () => clearTimeout(timer);
+    }, []); // Removed isDetailsOpen dependency to only fire once on mount
+
+    // Also auto-close when details are toggled open
+    useEffect(() => {
+        if (isDetailsOpen) {
+            const timer = setTimeout(() => {
+                setDetailsOpen(false);
+                setDismissedBottom(true);
+            }, 5000);
+            return () => clearTimeout(timer);
         }
-        return () => {
-            if (autoCloseBottomTimer.current) clearTimeout(autoCloseBottomTimer.current);
-        };
-    }, [isGreen, isChecking, isDegraded]);
+    }, [isDetailsOpen, setDetailsOpen]);
 
     const summaryColor = isGreen ? "text-emerald-600" : isDegraded ? "text-amber-500" : isChecking ? "text-neutral-400" : "text-[#CC0000]";
     const summaryText = isGreen
