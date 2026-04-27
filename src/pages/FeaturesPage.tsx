@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import {
   Sparkles, TrendingUp, BookOpen, Shield, Cpu, Rss, KeyRound,
   Layers, BarChart3, Bell, Globe, Palette, Brain, FileText,
-  Mail, Scale, Rocket, ArrowRight,
+  Mail, Scale, Rocket, ArrowRight, Bookmark, Activity, MessageSquare, Lock, LayoutGrid
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -17,26 +17,22 @@ const fadeUp = {
 
 /* ── Data ──────────────────────────────────────────────────────────── */
 const features = [
-  { icon: Rss, title: "Smart Feed Aggregation", desc: "Connect your favorite RSS feeds, podcasts, and official APIs. All legal, all ethical.", category: "Input" },
-  { icon: Sparkles, title: "AI Summarization", desc: "GPT-powered summaries that capture the essence of every article from your sources.", category: "Processing" },
-  { icon: TrendingUp, title: "Trend Detection", desc: "Identify emerging topics across your feeds before they go mainstream.", category: "Analysis" },
-  { icon: BookOpen, title: "Personalized Feeds", desc: "Your aggregated content, separated by topics and delivered seamlessly.", category: "Output" },
-  { icon: Layers, title: "Multi-Source Merging", desc: "Combine content from dozens of sources into one clean, unified timeline.", category: "Processing" },
-  { icon: BarChart3, title: "Reading Analytics", desc: "Track what you read, how long you engage, and discover patterns.", category: "Analysis" },
-  { icon: Bell, title: "Smart Notifications", desc: "Get pinged only about real-time content that matches your priority topics.", category: "Output" },
-  { icon: Shield, title: "Compliance & Ethics", desc: "Built on open standards. No web scraping. Full transparency.", category: "Trust" },
-  { icon: Globe, title: "Multi-Language Support", desc: "Curate and summarize content across multiple languages.", category: "Processing" },
-  { icon: KeyRound, title: "API Access", desc: "Integrate NewsLabs into your own tools with our developer API.", category: "Developer" },
-  { icon: Cpu, title: "Fully Automated", desc: "Set your preferences once. Your dashboard stays updated around the clock.", category: "Output" },
-  { icon: Palette, title: "Custom Dashboard", desc: "Organize your reading views with your own preferred layouts.", category: "Output" },
+  { icon: BookOpen, title: "Trusted Sources", desc: "Add your own trusted RSS sources and official APIs. All legal, all ethical.", category: "Input" },
+  { icon: Sparkles, title: "On-Demand Summaries", desc: "Choose between concise, balanced, or detailed summaries based on your preference.", category: "Processing" },
+  { icon: Brain, title: "Reliability Badging", desc: "Visual tags that score article reliability, sentiment tone, and detect factual vs. opinion pieces.", category: "Analysis" },
+  { icon: Activity, title: "Reading Lab Analytics", desc: "Track your Topic DNA, read depth (deep vs. skim), and visualize habits via the Reading Clock heatmap.", category: "Analytics" },
+  { icon: LayoutGrid, title: "Custom Dashboards", desc: "Organize your reading views with your own preferred layouts, toggling grid and list modes.", category: "Output" },
+  { icon: Lock, title: "BYOK Privacy", desc: "Bring your own API key. Keep complete ownership of your data and maintain total privacy.", category: "Privacy" },
+  { icon: Bell, title: "Notification Automation", desc: "Get smart, automated alerts about real-time content that matches your priority topics.", category: "Automation" },
+  { icon: Shield, title: "Compliance & Ethics", desc: "Built on open standards. Absolutely no web scraping. Full transparency.", category: "Trust" },
 ];
 
 const steps = [
   { icon: Rss, num: "01", title: "Fetch Feeds", desc: "You provide the sources. We pull content from their RSS feeds and official APIs — no scraping involved." },
-  { icon: Brain, num: "02", title: "AI Reads Content", desc: "Our AI engine processes and understands every article's context and meaning from the raw feed text." },
-  { icon: FileText, num: "03", title: "Summarize & Tag", desc: "Articles are summarized into concise insights and tagged by topic automatically." },
-  { icon: TrendingUp, num: "04", title: "Trend Analysis", desc: "We cross-reference topics across your feeds to detect emerging trends and patterns." },
-  { icon: Mail, num: "05", title: "Live Dashboard", desc: "A personalized, beautifully formatted dashboard automatically updates with your new content." },
+  { icon: Brain, num: "02", title: "AI Categorization", desc: "Our engine detects the core topic, factual vs. opinion nature, and overall sentiment of the piece." },
+  { icon: FileText, num: "03", title: "Dynamic Summaries", desc: "Articles are summarized into concise or detailed insights depending on your dashboard settings." },
+  { icon: Activity, num: "04", title: "Analytics Building", desc: "Your engagement populates the Reading Lab with deep vs. skim read stats and topic heatmaps." },
+  { icon: Mail, num: "05", title: "Live Dashboard", desc: "Access your personalized, continuously updating feed where you can read, save, and track your streak." },
 ];
 
 const docsEthics = [
@@ -58,7 +54,7 @@ const docsEthics = [
   {
     icon: Rocket,
     title: "Roadmap",
-    content: "We're building the future of ethical content curation. Upcoming features include: advanced personalization engines, team collaboration tools, custom dashboard layouts, API access for developers, and multi-language support. Our mission is to make knowledge accessible — the right way.",
+    content: "We're building the future of ethical content curation. Upcoming features include: advanced personalization engines, team collaboration tools, and custom dashboard layouts. Our mission is to make knowledge accessible — the right way.",
   },
 ];
 

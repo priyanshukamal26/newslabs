@@ -147,6 +147,8 @@ model ReadHistory {
   topic            String   @default("")
   source           String   @default("")
   sentiment        String   @default("")
+  title            String   @default("")
+  link             String   @default("")
 
   user      User     @relation(fields: [userId], references: [id])
 

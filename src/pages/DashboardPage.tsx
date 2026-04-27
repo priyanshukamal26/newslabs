@@ -265,7 +265,7 @@ export default function DashboardPage() {
       setIsReanalyzing(true);
       setOverrideAnalysis(null);
       try {
-        const result = await analyzeArticle(article.id, mode, 'force');
+        const result = await analyzeArticle(article.id, mode, 'force', article.title, article.link);
         setOverrideAnalysis({ summary: result.summary, insights: result.insights, why: result.why, topic: result.topic });
       } catch {
         toast.error("Re-analysis failed. Try again.", { duration: 3000 });
@@ -276,7 +276,7 @@ export default function DashboardPage() {
     }
     setIsAnalyzing(true); setWaitingForCooldown(false);
     try {
-      const analyzed = await analyzeArticle(article.id);
+      const analyzed = await analyzeArticle(article.id, undefined, undefined, article.title, article.link);
       setSelectedArticle(analyzed);
       setOverrideAnalysis(null);
       queryClient.setQueryData(["feed"], (old: Article[] | undefined) => old?.map(a => a.id === analyzed.id ? analyzed : a));

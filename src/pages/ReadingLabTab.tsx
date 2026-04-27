@@ -417,11 +417,11 @@ export function ReadingLabTab({ labData, isLoading, isAuthenticated }: ReadingLa
         </div>
         <div className="divide-y divide-divider-grey">
           {recentReads?.length > 0 ? recentReads.slice(0, 20).map((r: any, i: number) => (
-            <motion.div key={r.articleId} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
-              className="flex items-start gap-4 px-6 py-3.5 hover:bg-ink/5 transition-colors">
+            <motion.a href={r.link || "#"} target="_blank" rel="noopener noreferrer" key={r.articleId} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
+              className="flex items-start gap-4 px-6 py-3.5 hover:bg-ink/5 transition-colors group">
               <span className="text-[10px] font-black text-neutral-300 pt-0.5 w-5 shrink-0 text-right" style={serif}>{i + 1}.</span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-ink leading-snug" style={bodyFont}>{r.title || "Untitled"}</p>
+                <p className="text-sm font-medium text-ink leading-snug group-hover:underline" style={bodyFont}>{r.title || "Untitled"}</p>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <span className="text-[8px] font-bold uppercase tracking-[0.15em] border border-editorial-red text-editorial-red px-1" style={mono}>{r.topic}</span>
                   <span className="text-[9px] text-neutral-400" style={mono}>{r.source}</span>
@@ -432,9 +432,12 @@ export function ReadingLabTab({ labData, isLoading, isAuthenticated }: ReadingLa
                 <span className={`text-[8px] font-black uppercase tracking-[0.12em] px-1.5 py-0.5 border ${r.depthLabel === "Deep" ? "border-emerald-400 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/20" : r.depthLabel === "Skim" ? "border-amber-400 text-amber-700 bg-amber-50 dark:bg-amber-950/20" : "border-divider-grey text-neutral-400"}`} style={mono}>
                   {r.depthLabel}
                 </span>
-                <span className="text-[8px] text-neutral-400" style={mono}>{fmtSecs(r.timeSpentSecs)}</span>
+                <span className="text-[8px] text-neutral-400 flex items-center gap-1" style={mono}>
+                  {fmtSecs(r.timeSpentSecs)}
+                  <ExternalLink className="h-2 w-2 text-neutral-300 group-hover:text-ink transition-colors ml-1" />
+                </span>
               </div>
-            </motion.div>
+            </motion.a>
           )) : (
             <p className="text-sm text-neutral-400 text-center py-12" style={bodyFont}>No reads recorded yet. Start reading!</p>
           )}

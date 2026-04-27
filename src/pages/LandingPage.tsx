@@ -3,18 +3,19 @@ import { Link } from "react-router-dom";
 import {
   Sparkles, TrendingUp, BookOpen, Shield, Cpu,
   Rss, KeyRound, Brain, Lock, ArrowRight, Globe,
+  Activity, MessageSquare, BarChart3, Bookmark, Bell, LayoutGrid
 } from "lucide-react";
 
 /* ── Data ──────────────────────────────────────────────────────────── */
 const features = [
-  { icon: Sparkles, title: "AI Summarization", desc: "By bypassing clickbait, our models synthesize your feeds into dense, high-value briefs.", category: "Processing", wip: false },
-  { icon: TrendingUp, title: "Trend Detection", desc: "Identify emerging narratives across all your feeds instantly, before they saturate the mainstream.", category: "Analysis", wip: false },
-  { icon: BookOpen, title: "Topic-Based Feeds", desc: "Content is automatically categorized and delivered cleanly—no algorithms deciding what you see.", category: "Output", wip: false },
-  { icon: Shield, title: "Legal & Ethical", desc: "Zero scraping. We only process content from websites that officially publish their feeds.", category: "Trust", wip: false },
-  { icon: Cpu, title: "Always Updated", desc: "Set it and forget it. Your live dashboard is perpetually synced to your trusted sources.", category: "Automation", wip: false },
-  { icon: Rss, title: "Open Standards", desc: "Built on RSS—the original, uncompromised standard for decentralized web syndication.", category: "Input", wip: false },
-  { icon: Brain, title: "Smart Categorization", desc: "Every article is automatically sorted into the right topic — no wrong bins, no missing stories. Our intelligent engine gets smarter the more you read.", category: "Intelligence", wip: true },
-  { icon: Globe, title: "India-First Coverage", desc: "Built for the Indian reader. Politics, markets, sport, culture — deeply understood, accurately sorted, from every major Indian outlet.", category: "Regional", wip: false },
+  { icon: Sparkles, title: "On-Demand Summaries", desc: "Choose between concise, balanced, or detailed summaries tailored to your reading style.", category: "Processing", wip: false },
+  { icon: Activity, title: "Reading Lab", desc: "Unlock deep analytics, reading streaks, Topic DNA, and heatmaps to understand your reading habits.", category: "Analytics", wip: false },
+  { icon: Lock, title: "BYOK Privacy", desc: "Bring your own key for absolute privacy. You control your data and how the models interact with it.", category: "Privacy", wip: false },
+  { icon: Brain, title: "Reliability Scores", desc: "Every article is automatically analyzed to detect factual vs. opinion content and assign credibility scores.", category: "Intelligence", wip: false },
+  { icon: BookOpen, title: "Trusted Sources", desc: "You are in control. Add and manage your own trusted RSS sources to curate your personalized feed.", category: "Input", wip: false },
+  { icon: Bell, title: "Notification Automation", desc: "Set up automated smart notifications for real-time content that matches your specific priority topics.", category: "Automation", wip: false },
+  { icon: LayoutGrid, title: "Custom Dashboard", desc: "Organize your reading views with your own preferred layouts, switching seamlessly between grid and list.", category: "Output", wip: false },
+  { icon: Shield, title: "Compliance & Ethics", desc: "Built on open standards. No web scraping. Full transparency with verified source tracking.", category: "Trust", wip: false },
 ];
 
 const trustPillars = [
@@ -102,7 +103,7 @@ function HeroSection() {
               className="text-lg sm:text-xl text-neutral-600 max-w-xl leading-relaxed mb-10"
               style={{ fontFamily: "'Lora', serif" }}
             >
-              Stop drowning in endless feeds and clickbait. Connect your trusted RSS sources to NewsLabs, and our intelligent AI will synthesize hundreds of articles into a single, distraction-free live dashboard.
+              Stop drowning in endless feeds and clickbait. Aggregate your trusted RSS sources into a single, distraction-free live dashboard, then leverage on-demand summarization and analytics.
             </motion.p>
 
             {/* CTAs */}

@@ -353,24 +353,31 @@ Mark all unread notifications as read.
 
 ---
 
-## AI — `/api/ai`
-
-### `POST /api/ai/chat`
-> ⚠️ **Currently disabled** to conserve Groq API limits. Returns a friendly status message.
-
-**Response `200`**
-```json
-{ "reply": "🚧 AI Chat is temporarily disabled to conserve API limits. It will be back soon!" }
-```
+## AI Pipelines
 
 ---
 
 ### `POST /api/ai/summarize`
-> ⚠️ **Currently disabled** to conserve Groq API limits.
+Generate AI summary for a specific article or text block. Uses the user's preferred AI provider (if BYOK is enabled) or the system's hybrid pipeline.
+
+**Body**
+```json
+{
+  "text": "Full article content or snippet...",
+  "sessionTimeoutSeconds": 30 // optional: 0, 10, 30, 60, 120
+}
+```
 
 **Response `200`**
 ```json
-{ "summary": "AI summarization is temporarily disabled.", "insights": [], "why": "API limits reached.", "topic": "N/A" }
+{
+  "summary": "...",
+  "insights": ["...", "..."],
+  "why": "...",
+  "topic": "...",
+  "usedSystemFallback": false,
+  "timerUnlocked": true
+}
 ```
 
 ---

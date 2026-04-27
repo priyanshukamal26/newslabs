@@ -19,7 +19,6 @@ The first fully deployed public version. This is what currently lives on the Git
 - **Keyword-based categorization** into 17 topics — simple `.includes()` string match against a flat list
 - **Algorithmic trending topics** — top-N word frequency across all article titles
 - **AI article analysis** on demand — Groq `llama-3.1-8b-instant` for summaries, insights, and topic tagging
-- **AI Chat** component — Groq-powered free chat about news (later disabled)
 - Article **Like** and **Save** — initially in-memory, later migrated to PostgreSQL
 - **Landing page**, Features page, Auth page, Dashboard, Profile page
 - `vercel.json` for frontend routing, `server/render.yaml` for backend deployment
@@ -72,7 +71,6 @@ The first fully deployed public version. This is what currently lives on the Git
 - **Change password** form in Profile page
 - **Retry logic with exponential back-off** — 2s → 4s → 8s on Groq 429 errors
 - 15-second per-request timeout on Groq calls
-- Groq AI Chat disabled by default to prevent rate-limit exhaustion
 
 ### Bugs Fixed
 - Hybrid mode wasn't actually falling back to Gemini (logic flaw fixed)

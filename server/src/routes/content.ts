@@ -261,12 +261,28 @@ export async function contentRoutes(server: FastifyInstance) {
     });
 
     server.post('/analyze', async (request: FastifyRequest, reply: FastifyReply) => {
-        const { id, summaryMode: requestedMode, forceMode } = request.body as {
+        const { id, summaryMode: requestedMode, forceMode, title, link } = request.body as {
             id: string;
             summaryMode?: 'concise' | 'balanced' | 'detailed';
             forceMode?: string;
+            title?: string;
+            link?: string;
         };
-        const article = store.getArticles().find(a => a.id === id);
+        let article = store.getArticles().find(a => a.id === id);
+
+        if (!article && title) {
+            // Reconstruct a minimal article for analysis if it was flushed from memory or never existed (e.g., old brief)
+            article = {
+                id,
+                title,
+                link: link || '',
+                summary: "Click to analyze",
+                topic: "News",
+                contentSnippet: title,
+                why: "",
+                insights: [],
+            } as unknown as Article;
+        }
 
         if (!article) return reply.status(404).send({ error: 'Article not found' });
 

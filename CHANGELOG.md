@@ -9,7 +9,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Planned
 - Trending topic click-to-filter (apply search from Trending Now panel)
-- Re-enable AI Chat once API rate-limit strategy is in place
 - Persistent article storage (database-backed, survives server restarts)
 - Naive Bayes model serialization (skip retraining on cold start)
 
@@ -99,7 +98,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Algorithmic trending topic extraction (word frequency)
 - Algorithmic content insights (top trend, most-read topic, emerging topic)
 - Article like / save / read interactions (in-memory, later migrated to DB)
-- AI Chat component (Groq-powered, later rate-limited)
 - Landing page, Features page, Auth page, Dashboard, Profile
 - Vercel deployment config (`vercel.json`)
 - Render deployment config (`server/render.yaml`)

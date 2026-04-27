@@ -8,6 +8,20 @@ export const api = axios.create({
     },
 });
 
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            if (localStorage.getItem('token')) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/';
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 export interface Article {
     id: string;
     title: string;
@@ -89,9 +103,11 @@ export const triggerRefresh = async (): Promise<void> => {
 export const analyzeArticle = async (
     id: string,
     summaryMode?: 'concise' | 'balanced' | 'detailed',
-    forceMode?: string
+    forceMode?: string,
+    fallbackTitle?: string,
+    fallbackLink?: string
 ): Promise<Article> => {
-    const { data } = await api.post('/content/analyze', { id, summaryMode, forceMode });
+    const { data } = await api.post('/content/analyze', { id, summaryMode, forceMode, title: fallbackTitle, link: fallbackLink });
     return data;
 };
 

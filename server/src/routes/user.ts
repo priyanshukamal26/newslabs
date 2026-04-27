@@ -700,6 +700,8 @@ export async function userRoutes(server: FastifyInstance) {
         const topic = body.topic || article?.topic || '';
         const source = body.source || article?.source || '';
         const sentiment = body.sentiment || article?.sentiment || '';
+        const title = body.title || article?.title || '';
+        const link = body.link || article?.link || '';
 
         const existing = await prisma.readHistory.findFirst({
             where: { userId, articleId }
@@ -715,6 +717,8 @@ export async function userRoutes(server: FastifyInstance) {
                     topic,
                     source,
                     sentiment,
+                    title,
+                    link,
                 },
             });
 
@@ -739,10 +743,11 @@ export async function userRoutes(server: FastifyInstance) {
 
     // ── Reading Lab Analytics ───────────────────────────────────────────────────
     server.get('/read-lab', { preHandler: requireAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
-        const userId = (request as any).userId;
-        const MIN_READS_FOR_ANALYTICS = 5;
+        try {
+            const userId = (request as any).userId;
+            const MIN_READS_FOR_ANALYTICS = 5;
 
-        const [user, allReads, allLiked, allSaved] = await Promise.all([
+            const [user, allReads, allLiked, allSaved] = await Promise.all([
             prisma.user.findUnique({ where: { id: userId } }),
             prisma.readHistory.findMany({
                 where: { userId },
@@ -809,6 +814,7 @@ export async function userRoutes(server: FastifyInstance) {
             return {
                 articleId: r.articleId,
                 title: r.title || store.getArticleById(r.articleId)?.title || 'Archived Article',
+                link: r.link || store.getArticleById(r.articleId)?.link || '',
                 topic: r.topic || 'General',
                 source: r.source || 'Unknown',
                 sentiment: r.sentiment || 'Neutral',
@@ -934,6 +940,11 @@ export async function userRoutes(server: FastifyInstance) {
             longestStreak: user?.longestStreak || 0,
             totalReadTime: user?.totalReadTime || 0,
         };
+        } catch (error) {
+            console.error('[read-lab] ERROR:', error);
+            require('fs').writeFileSync('lab_error.txt', String(error) + '\n' + (error as Error).stack);
+            return reply.status(500).send({ error: 'Failed to generate reading lab analytics' });
+        }
     });
 
     // Get liked articles (from DB, denormalized)
