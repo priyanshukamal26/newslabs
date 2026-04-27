@@ -22,10 +22,10 @@ export default {
       },
       colors: {
         // Newsprint design tokens
-        ink: "#111111",
-        paper: "#F9F9F7",
-        "editorial-red": "#CC0000",
-        "divider-grey": "#E5E5E0",
+        ink: "hsl(var(--np-ink))",
+        paper: "hsl(var(--np-paper))",
+        "editorial-red": "hsl(var(--np-red))",
+        "divider-grey": "hsl(var(--np-muted))",
 
         // Neutral scale
         neutral: {

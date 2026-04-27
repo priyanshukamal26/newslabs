@@ -12,14 +12,14 @@ export function Footer() {
 
     return (
         <footer
-            className="border-t-2 border-[#111111] bg-[#F9F9F7] mt-auto newsprint-texture"
+            className="border-t-2 border-ink bg-paper mt-auto newsprint-texture"
             style={{ fontFamily: "'Inter', sans-serif" }}
         >
             {/* Main footer grid */}
-            <div className="max-w-screen-xl mx-auto grid grid-cols-1 md:grid-cols-12 border-b border-[#111111]">
+            <div className="max-w-screen-xl mx-auto grid grid-cols-1 md:grid-cols-12 border-b border-ink">
 
                 {/* Col 1 — Brand & tagline (span 4) */}
-                <div className="md:col-span-4 px-6 py-8 border-b md:border-b-0 md:border-r border-[#111111]">
+                <div className="md:col-span-4 px-6 py-8 border-b md:border-b-0 md:border-r border-ink">
                     <Link to="/" className="inline-flex items-center gap-2.5 mb-4 group">
                         <img
                             src="/logo.png"
@@ -27,7 +27,7 @@ export function Footer() {
                             className="h-7 w-auto object-contain grayscale"
                         />
                         <span
-                            className="font-black text-xl text-[#111111]"
+                            className="font-black text-xl text-ink"
                             style={{ fontFamily: "'Playfair Display', serif" }}
                         >
                             NewsLabs
@@ -48,7 +48,7 @@ export function Footer() {
                 </div>
 
                 {/* Col 2 — Navigation (span 3) */}
-                <div className="md:col-span-3 px-6 py-8 border-b md:border-b-0 md:border-r border-[#111111]">
+                <div className="md:col-span-3 px-6 py-8 border-b md:border-b-0 md:border-r border-ink">
                     <h4 className="text-[10px] font-bold uppercase tracking-[0.25em] text-neutral-500 mb-4">
                         Navigation
                     </h4>
@@ -57,7 +57,7 @@ export function Footer() {
                             <li key={link.path}>
                                 <Link
                                     to={link.path}
-                                    className="text-sm font-medium text-[#111111] hover:text-[#CC0000] transition-colors duration-150 editorial-link"
+                                    className="text-sm font-medium text-ink hover:text-editorial-red transition-colors duration-150 editorial-link"
                                 >
                                     {link.label}
                                 </Link>
@@ -67,7 +67,7 @@ export function Footer() {
                 </div>
 
                 {/* Col 3 — About (span 3) */}
-                <div className="md:col-span-3 px-6 py-8 border-b md:border-b-0 md:border-r border-[#111111]">
+                <div className="md:col-span-3 px-6 py-8 border-b md:border-b-0 md:border-r border-ink">
                     <h4 className="text-[10px] font-bold uppercase tracking-[0.25em] text-neutral-500 mb-4">
                         About
                     </h4>
@@ -80,7 +80,7 @@ export function Footer() {
                             href="https://www.linkedin.com/in/priyanshukamal/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="font-semibold text-[#111111] hover:text-[#CC0000] transition-colors editorial-link"
+                            className="font-semibold text-ink hover:text-editorial-red transition-colors editorial-link"
                         >
                             Priyanshu Kamal
                         </a>
@@ -99,7 +99,7 @@ export function Footer() {
                             target="_blank"
                             rel="noopener noreferrer"
                             aria-label="GitHub"
-                            className="w-10 h-10 border border-[#111111] flex items-center justify-center text-[#111111] hover:bg-[#111111] hover:text-[#F9F9F7] transition-all duration-150"
+                            className="w-10 h-10 border border-ink flex items-center justify-center text-ink hover:bg-ink hover:text-paper transition-all duration-150"
                         >
                             <Github className="h-4 w-4" strokeWidth={1.5} />
                         </a>
@@ -108,7 +108,7 @@ export function Footer() {
                             target="_blank"
                             rel="noopener noreferrer"
                             aria-label="LinkedIn"
-                            className="w-10 h-10 border border-[#111111] flex items-center justify-center text-[#111111] hover:bg-[#111111] hover:text-[#F9F9F7] transition-all duration-150"
+                            className="w-10 h-10 border border-ink flex items-center justify-center text-ink hover:bg-ink hover:text-paper transition-all duration-150"
                         >
                             <Linkedin className="h-4 w-4" strokeWidth={1.5} />
                         </a>

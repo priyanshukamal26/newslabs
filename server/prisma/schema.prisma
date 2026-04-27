@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -15,7 +16,8 @@ model User {
   phone     String?
   avatarUrl String?
   darkMode  Boolean  @default(true)
-  aiProvider String   @default("hybrid")
+  aiProvider   String  @default("hybrid")
+  summaryMode  String  @default("balanced")
   createdAt DateTime @default(now())
   
   topics    String   @default("[]")
@@ -33,6 +35,10 @@ model User {
   likedArticles LikedArticle[]
   readHistory   ReadHistory[]
   notifications Notification[]
+  feeds         UserFeed[]
+  notificationSettings UserNotificationSettings?
+  apiCredentials UserApiCredential[]
+  aiPreference   UserAiPreference?
 }
 
 model Feed {
@@ -42,6 +48,57 @@ model Feed {
   type        String
   lastFetched DateTime @default(now())
   isActive    Boolean  @default(true)
+}
+
+model UserFeed {
+  id          String   @id @default(uuid())
+  userId      String
+  url         String
+  displayName String
+  category    String?
+  isActive    Boolean  @default(true)
+  addedAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, url])
+  @@index([userId, isActive])
+}
+
+model UserApiCredential {
+  id             String   @id @default(uuid())
+  userId         String
+  label          String
+  provider       String
+  model          String
+  baseUrl        String?
+  encryptedApiKey String
+  apiKeyMask     String
+  isVerified     Boolean  @default(false)
+  lastValidatedAt DateTime?
+  isActive       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeForPreference UserAiPreference[] @relation("ActiveCredential")
+
+  @@index([userId, isActive])
+}
+
+model UserAiPreference {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  byokEnabled      Boolean  @default(false)
+  activeCredentialId String?
+  timeoutSeconds   Int      @default(30)
+  timeoutDisabled  Boolean  @default(false)
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeCredential UserApiCredential? @relation("ActiveCredential", fields: [activeCredentialId], references: [id], onDelete: SetNull)
+
+  @@index([userId, byokEnabled])
 }
 
 model SavedArticle {
@@ -101,6 +158,62 @@ model Notification {
   createdAt DateTime @default(now())
   
   user      User     @relation(fields: [userId], references: [id])
+}
+
+model UserNotificationSettings {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+
+  // Telegram
+  telegramChatId            String?  // set when user sends /start to the bot
+  telegramUserId            String?  // Telegram's user ID
+  telegramEnabled           Boolean  @default(false)
+  telegramConnectToken      String?  @unique
+  telegramConnectExpiresAt  DateTime?
+
+  // Discord
+  discordWebhookUrl String?
+  discordEnabled    Boolean  @default(false)
+
+  // Schedule: JSON array of slot keys, e.g. ["morning","night"]
+  // Valid values: "morning" (06:00 IST), "noon" (14:00 IST), "evening" (18:00 IST), "night" (22:00 IST)
+  activeSlots       String   @default("[]")
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs              NotificationLog[]
+
+  @@index([telegramEnabled])
+  @@index([discordEnabled])
+}
+
+model NotificationLog {
+  id              String   @id @default(uuid())
+  settingsId      String
+  userId          String
+
+  platform        String   // "telegram" | "discord"
+  slot            String   // "morning" | "noon" | "evening" | "night"
+  slotLabel       String   // e.g. "Morning Brief — 6:00 AM IST"
+  sentAt          DateTime @default(now())
+
+  // Denormalized article data (persists even if in-memory store resets)
+  articleIds      String   // JSON array of article IDs
+  articleTitles   String   // JSON array of titles
+  articleLinks    String   // JSON array of URLs
+  articleSources  String   // JSON array of source names
+  articleTopics   String   // JSON array of topic categories
+  selectionReason String   // human-readable ranking rationale
+
+  success         Boolean
+  errorMessage    String?
+
+  settings        UserNotificationSettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+
+  @@index([userId, sentAt(sort: Desc)])
+  @@index([settingsId])
 }
 
 model Trend {

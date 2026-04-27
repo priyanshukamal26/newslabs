@@ -38,13 +38,13 @@ const fadeUp = {
 function HeroSection() {
   return (
     <section
-      className="relative border-b-2 border-[#111111] overflow-hidden"
+      className="relative border-b-2 border-ink overflow-hidden"
       aria-label="Hero"
     >
       {/* Dot-grid is on body; add subtle texture layer */}
       <div className="max-w-screen-xl mx-auto">
         {/* Newspaper masthead rule */}
-        <div className="border-b border-[#111111] px-4 sm:px-8 py-3 flex items-center justify-between">
+        <div className="border-b border-ink px-4 sm:px-8 py-3 flex items-center justify-between">
           <span
             className="text-[10px] uppercase tracking-[0.25em] text-neutral-500"
             style={{ fontFamily: "'JetBrains Mono', monospace" }}
@@ -63,16 +63,16 @@ function HeroSection() {
         <div className="grid grid-cols-1 lg:grid-cols-12">
 
           {/* LEFT: Headline block (col-span-8) */}
-          <div className="lg:col-span-8 px-4 sm:px-8 py-14 lg:py-24 border-b lg:border-b-0 lg:border-r border-[#111111] flex flex-col justify-center relative overflow-hidden">
+          <div className="lg:col-span-8 px-4 sm:px-8 py-14 lg:py-24 border-b lg:border-b-0 lg:border-r border-ink flex flex-col justify-center relative overflow-hidden">
 
             {/* Subtle background ornament */}
             <div className="absolute -top-24 -left-24 w-96 h-96 bg-neutral-100 rounded-full blur-[80px] -z-10 opacity-60 pointer-events-none" />
 
             {/* Category label */}
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-2 h-2 bg-[#CC0000]" />
+              <div className="w-2 h-2 bg-editorial-red" />
               <span
-                className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#CC0000]"
+                className="text-[10px] font-bold uppercase tracking-[0.25em] text-editorial-red"
                 style={{ fontFamily: "'JetBrains Mono', monospace" }}
               >
                 Exclusive — AI-Powered Curation
@@ -84,12 +84,12 @@ function HeroSection() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55, ease: "easeOut" }}
-              className="text-5xl sm:text-6xl lg:text-7xl xl:text-[5.5rem] font-black text-[#111111] leading-[0.95] tracking-tight mb-6"
+              className="text-5xl sm:text-6xl lg:text-7xl xl:text-[5.5rem] font-black text-ink leading-[0.95] tracking-tight mb-6"
               style={{ fontFamily: "'Playfair Display', serif" }}
             >
               Read Less.
               <br />
-              <em className="text-[#CC0000]" style={{ fontStyle: "italic" }}>
+              <em className="text-editorial-red" style={{ fontStyle: "italic" }}>
                 Understand More.
               </em>
             </motion.h1>
@@ -114,14 +114,14 @@ function HeroSection() {
             >
               <Link
                 to="/auth"
-                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-[#111111] text-[#F9F9F7] text-xs font-bold uppercase tracking-[0.18em] border border-[#111111] hover:bg-white hover:text-[#111111] transition-all duration-150 min-h-[44px]"
+                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-ink text-paper text-xs font-bold uppercase tracking-[0.18em] border border-ink hover:bg-transparent hover:text-ink transition-all duration-150 min-h-[44px]"
                 style={{ fontFamily: "'Inter', sans-serif", borderRadius: 0 }}
               >
                 Start Reading <ArrowRight className="h-3.5 w-3.5" />
               </Link>
               <Link
                 to="/features"
-                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-transparent text-[#111111] text-xs font-bold uppercase tracking-[0.18em] border border-[#111111] hover:bg-neutral-100 transition-all duration-150 min-h-[44px]"
+                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-transparent text-ink text-xs font-bold uppercase tracking-[0.18em] border border-ink hover:bg-ink/10 transition-all duration-150 min-h-[44px]"
                 style={{ fontFamily: "'Inter', sans-serif", borderRadius: 0 }}
               >
                 See How It Works
@@ -133,7 +133,7 @@ function HeroSection() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.4, delay: 0.4 }}
-              className="mt-8 pt-6 border-t border-[#E5E5E0] flex items-center gap-4"
+              className="mt-8 pt-6 border-t border-divider-grey flex items-center gap-4"
             >
               <span
                 className="text-[10px] uppercase tracking-[0.2em] text-neutral-500"
@@ -152,18 +152,18 @@ function HeroSection() {
           </div>
 
           {/* RIGHT: Visual panel (col-span-4) */}
-          <div className="lg:col-span-4 px-6 py-10 lg:py-16 flex flex-col gap-6 lg:bg-neutral-50 lg:border-l-4 lg:border-white">
+          <div className="lg:col-span-4 px-6 py-10 lg:py-16 flex flex-col gap-6 lg:bg-paper lg:border-l lg:border-ink">
 
             {/* Abstract Graphic */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2, duration: 0.5 }}
-              className="w-full aspect-[4/3] border border-[#111111] bg-white p-4 flex flex-col gap-3 relative overflow-hidden group"
+              className="w-full aspect-[4/3] border border-ink bg-paper p-4 flex flex-col gap-3 relative overflow-hidden group"
             >
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, #111111 1px, transparent 1px)', backgroundSize: '12px 12px' }} />
-              <div className="flex items-center gap-2 mb-2 pb-2 border-b border-[#E5E5E0]">
-                <div className="w-3 h-3 bg-[#CC0000] rounded-full animate-pulse" />
+              <div className="flex items-center gap-2 mb-2 pb-2 border-b border-divider-grey">
+                <div className="w-3 h-3 bg-editorial-red rounded-full animate-pulse" />
                 <motion.div
                   className="h-2 bg-neutral-200"
                   animate={{ width: ["4rem", "6rem", "4rem"] }}
@@ -178,7 +178,7 @@ function HeroSection() {
                 />
                 <div className="w-2/3 h-full flex flex-col gap-2">
                   <motion.div
-                    className="h-4 bg-[#111111]"
+                    className="h-4 bg-ink"
                     animate={{ width: ["100%", "85%", "100%"] }}
                     transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                   />
@@ -209,10 +209,10 @@ function HeroSection() {
                 initial={{ opacity: 0, x: 16 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 + i * 0.1, duration: 0.4 }}
-                className="border border-[#111111] p-5 hard-shadow-hover cursor-default"
+                className="border border-ink p-5 hard-shadow-hover cursor-default"
               >
                 <div
-                  className="text-4xl font-black text-[#111111] leading-none mb-1"
+                  className="text-4xl font-black text-ink leading-none mb-1"
                   style={{ fontFamily: "'Playfair Display', serif" }}
                 >
                   {stat.num}
@@ -234,10 +234,10 @@ function HeroSection() {
 
 function FeaturesSection() {
   return (
-    <section className="border-b-2 border-[#111111]" aria-label="Features">
+    <section className="border-b-2 border-ink" aria-label="Features">
       <div className="max-w-screen-xl mx-auto">
         {/* Section header */}
-        <div className="border-b border-[#111111] px-4 sm:px-8 py-6 flex items-end justify-between gap-4">
+        <div className="border-b border-ink px-4 sm:px-8 py-6 flex items-end justify-between gap-4">
           <div>
             <p
               className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2"
@@ -246,7 +246,7 @@ function FeaturesSection() {
               Product Features
             </p>
             <h2
-              className="text-3xl md:text-4xl font-black text-[#111111] leading-tight"
+              className="text-3xl md:text-4xl font-black text-ink leading-tight"
               style={{ fontFamily: "'Playfair Display', serif" }}
             >
               Everything You Need
@@ -254,7 +254,7 @@ function FeaturesSection() {
           </div>
           <Link
             to="/features"
-            className="hidden sm:flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-[#CC0000] hover:text-[#111111] transition-colors duration-150 shrink-0"
+            className="hidden sm:flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-editorial-red hover:text-ink transition-colors duration-150 shrink-0"
             style={{ fontFamily: "'Inter', sans-serif" }}
           >
             Full Feature List <ArrowRight className="h-3 w-3" />
@@ -272,27 +272,27 @@ function FeaturesSection() {
               viewport={{ once: true, margin: "-60px" }}
               custom={i}
               className={`
-                p-6 sm:p-8 border-b border-[#111111] group cursor-default hard-shadow-hover
+                p-6 sm:p-8 border-b border-ink group cursor-default hard-shadow-hover
                 ${(i + 1) % 3 !== 0 ? "lg:border-r" : ""}
                 ${(i + 1) % 2 !== 0 ? "sm:border-r" : "sm:border-r-0"}
                 ${(i + 1) % 3 !== 0 && (i + 1) % 2 !== 0 ? "sm:border-r lg:border-r" : ""}
               `}
             >
               {/* Icon box */}
-              <div className="w-11 h-11 border border-[#111111] flex items-center justify-center mb-5 bg-white text-[#111111] group-hover:bg-[#111111] group-hover:text-[#F9F9F7] transition-all duration-150">
+              <div className="w-11 h-11 border border-ink flex items-center justify-center mb-5 bg-paper text-ink group-hover:bg-ink group-hover:text-paper transition-all duration-150">
                 <f.icon className="h-5 w-5" strokeWidth={1.5} />
               </div>
 
               {/* Category label */}
               <p
-                className="text-xs uppercase tracking-[0.22em] text-[#CC0000] mb-2 font-bold"
+                className="text-xs uppercase tracking-[0.22em] text-editorial-red mb-2 font-bold"
                 style={{ fontFamily: "'JetBrains Mono', monospace" }}
               >
                 {f.category}
               </p>
 
               <h3
-                className="text-xl sm:text-2xl font-bold text-[#111111] mb-3 flex items-center gap-2"
+                className="text-xl sm:text-2xl font-bold text-ink mb-3 flex items-center gap-2"
                 style={{ fontFamily: "'Playfair Display', serif" }}
               >
                 {f.title}
@@ -300,16 +300,16 @@ function FeaturesSection() {
                   <span className="relative flex items-center" aria-label="Work in progress">
                     {/* Pulsing dot */}
                     <span className="relative flex h-2.5 w-2.5 mt-0.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#CC0000] opacity-60" />
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#CC0000]" />
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-editorial-red opacity-60" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-editorial-red" />
                     </span>
                     {/* Tooltip */}
                     <span
-                      className="absolute left-4 -top-1 z-50 hidden group-hover:flex flex-col w-56 bg-[#111111] text-[#F9F9F7] px-3 py-2.5 pointer-events-none"
+                      className="absolute left-4 -top-1 z-50 hidden group-hover:flex flex-col w-56 bg-ink text-paper px-3 py-2.5 pointer-events-none"
                       style={{ fontFamily: "'Inter', sans-serif" }}
                       role="tooltip"
                     >
-                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#CC0000] mb-1">Improving</span>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-editorial-red mb-1">Improving</span>
                       <span className="text-xs leading-relaxed text-neutral-300">
                         Full AI-powered categorization is temporarily limited — on-demand AI analysis exhausts API rate limits needed for article summaries. Our keyword + NLP engine covers 100% of articles in the interim.
                       </span>
@@ -377,11 +377,11 @@ function NewsletterPreview() {
   });
 
   return (
-    <section className="border-b-2 border-[#111111]" aria-label="Feed preview">
+    <section className="border-b-2 border-ink" aria-label="Feed preview">
       <div className="max-w-screen-xl mx-auto grid grid-cols-1 lg:grid-cols-12">
 
         {/* Left label panel */}
-        <div className="lg:col-span-3 border-b lg:border-b-0 lg:border-r border-[#111111] px-6 py-10 flex flex-col justify-center bg-[#111111] text-[#F9F9F7]">
+        <div className="lg:col-span-3 border-b lg:border-b-0 lg:border-r border-ink px-6 py-10 flex flex-col justify-center bg-neutral-950 text-neutral-50">
           <p
             className="text-[10px] uppercase tracking-[0.25em] text-neutral-400 mb-4"
             style={{ fontFamily: "'JetBrains Mono', monospace" }}
@@ -409,11 +409,11 @@ function NewsletterPreview() {
         </div>
 
         {/* Right: Article list with running animation */}
-        <div className="lg:col-span-9 flex flex-col bg-white">
+        <div className="lg:col-span-9 flex flex-col bg-paper">
           <div className="flex-1 relative h-[560px] overflow-hidden group">
             {/* Top and Bottom gradient masks for smooth entering/exiting */}
-            <div className="absolute top-0 inset-x-0 h-16 bg-gradient-to-b from-white to-transparent z-10 pointer-events-none" />
-            <div className="absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t from-white to-transparent z-10 pointer-events-none" />
+            <div className="absolute top-0 inset-x-0 h-16 bg-gradient-to-b from-paper to-transparent z-10 pointer-events-none" />
+            <div className="absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t from-paper to-transparent z-10 pointer-events-none" />
 
             <div className="animate-marquee-vertical group-hover:[animation-play-state:paused] flex flex-col absolute top-0 left-0 right-0">
               {/* Map the articles twice to create a seamless infinite scroll loop */}
@@ -423,11 +423,11 @@ function NewsletterPreview() {
                   href={article.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block px-6 sm:px-8 py-6 border-b border-[#E5E5E0] hover:bg-neutral-50 transition-colors duration-150 item-hover"
+                  className="block px-6 sm:px-8 py-6 border-b border-divider-grey hover:bg-ink/5 transition-colors duration-150 item-hover"
                 >
                   <div className="flex items-center gap-3 mb-2">
                     <span
-                      className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#CC0000]"
+                      className="text-[10px] font-bold uppercase tracking-[0.22em] text-editorial-red"
                       style={{ fontFamily: "'JetBrains Mono', monospace" }}
                     >
                       {article.topic}
@@ -441,13 +441,13 @@ function NewsletterPreview() {
                     </span>
                   </div>
                   <h4
-                    className="font-bold text-base sm:text-lg text-[#111111] mb-1.5 leading-tight hover:text-[#CC0000] transition-colors"
+                    className="font-bold text-base sm:text-lg text-ink mb-1.5 leading-tight hover:text-editorial-red transition-colors"
                     style={{ fontFamily: "'Playfair Display', serif" }}
                   >
                     {article.title}
                   </h4>
                   <p
-                    className="text-sm text-neutral-600 line-clamp-2 md:line-clamp-3 leading-relaxed"
+                    className="text-sm text-ink/70 line-clamp-2 md:line-clamp-3 leading-relaxed"
                     style={{ fontFamily: "'Lora', serif" }}
                   >
                     {article.summary}
@@ -458,7 +458,7 @@ function NewsletterPreview() {
           </div>
 
           {/* CTA row (Pinned at bottom) */}
-          <div className="relative z-20 px-6 sm:px-8 py-4 flex items-center justify-between bg-neutral-100 border-t border-[#111111]">
+          <div className="relative z-20 px-6 sm:px-8 py-4 flex items-center justify-between bg-ink/5 border-t border-ink">
             <span
               className="text-[10px] uppercase tracking-[0.2em] text-neutral-500"
               style={{ fontFamily: "'JetBrains Mono', monospace" }}
@@ -467,7 +467,7 @@ function NewsletterPreview() {
             </span>
             <Link
               to="/auth"
-              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.15em] text-[#111111] hover:text-[#CC0000] transition-colors"
+              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.15em] text-ink hover:text-editorial-red transition-colors"
               style={{ fontFamily: "'Inter', sans-serif" }}
             >
               Enter Dashboard <ArrowRight className="h-3 w-3" />
@@ -481,7 +481,7 @@ function NewsletterPreview() {
 
 function TrustSection() {
   return (
-    <section className="section-inverted newsprint-texture border-b-2 border-[#111111] relative overflow-hidden" aria-label="Trust">
+    <section className="section-inverted newsprint-texture border-b-2 border-ink relative overflow-hidden" aria-label="Trust">
       <div className="max-w-screen-xl mx-auto px-4 sm:px-8 py-16 lg:py-20">
 
         {/* Ornamental divider */}
@@ -501,11 +501,11 @@ function TrustSection() {
             The Anti-Clickbait Engine
           </p>
           <h2
-            className="text-4xl md:text-5xl font-black text-[#F9F9F7] leading-tight mb-4"
+            className="text-4xl md:text-5xl font-black text-paper leading-tight mb-4"
             style={{ fontFamily: "'Playfair Display', serif" }}
           >
             A Foundation of Trust.
-            <em style={{ fontStyle: "italic", color: "#CC0000" }}>{" "}Zero Scraping.</em>
+            <em style={{ fontStyle: "italic", color: "hsl(var(--np-red))" }}>{" "}Zero Scraping.</em>
           </h2>
           <p
             className="text-base text-neutral-400 max-w-lg mx-auto leading-relaxed"
@@ -516,7 +516,7 @@ function TrustSection() {
         </div>
 
         {/* Subtle grid background glow */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-[#CC0000] opacity-5 blur-[120px] pointer-events-none z-0" />
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-editorial-red opacity-5 blur-[120px] pointer-events-none z-0" />
 
         {/* Trust pillars grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 border border-neutral-700 relative z-10">
@@ -533,11 +533,11 @@ function TrustSection() {
                 border-b lg:border-b-0 border-neutral-700
               `}
             >
-              <div className="w-12 h-12 border border-neutral-600 flex items-center justify-center mb-4 bg-[#111111] text-[#F9F9F7] group-hover:border-[#CC0000] group-hover:bg-[#CC0000] group-hover:text-[#F9F9F7] transition-all duration-150">
+              <div className="w-12 h-12 border border-neutral-600 flex items-center justify-center mb-4 bg-ink text-paper group-hover:border-editorial-red group-hover:bg-editorial-red group-hover:text-paper transition-all duration-150">
                 <p.icon className="h-5 w-5 transition-colors" strokeWidth={1.5} />
               </div>
               <h3
-                className="text-sm font-bold text-[#F9F9F7] mb-1"
+                className="text-sm font-bold text-paper mb-1"
                 style={{ fontFamily: "'Playfair Display', serif" }}
               >
                 {p.label}
@@ -556,7 +556,7 @@ function TrustSection() {
         <div className="text-center mt-12 relative z-10">
           <Link
             to="/auth"
-            className="inline-flex items-center gap-2 px-8 py-3.5 bg-transparent text-[#F9F9F7] text-xs font-bold uppercase tracking-[0.18em] border border-neutral-600 hover:bg-[#F9F9F7] hover:text-[#111111] hover:border-[#F9F9F7] transition-all duration-300 min-h-[44px]"
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-transparent text-paper text-xs font-bold uppercase tracking-[0.18em] border border-neutral-600 hover:bg-paper hover:text-ink hover:border-paper transition-all duration-300 min-h-[44px]"
             style={{ fontFamily: "'Inter', sans-serif", borderRadius: 0 }}
           >
             Build Your Feed <ArrowRight className="h-3.5 w-3.5" />
@@ -579,7 +579,7 @@ function TrustSection() {
 /* ── Page ─────────────────────────────────────────────────────────── */
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#F9F9F7]">
+    <div className="min-h-screen bg-paper">
       <HeroSection />
       <FeaturesSection />
       <NewsletterPreview />

@@ -1,63 +1,165 @@
 import { FastifyInstance } from 'fastify';
-// import { aiService } from '../services/ai';
+import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
+import { requireAuth } from '../middleware/auth';
+import { aiService, AiExecutionOptions } from '../services/ai';
+import { decryptText } from '../services/crypto';
 
-// =============================================================================
-// AI ROUTES - COMMENTED OUT (temporarily disabled to conserve Groq API limits)
-//
-// These endpoints call the Groq API for chat and summarization.
-// They were disabled because the daily API rate limit was being exceeded.
-//
-// To re-enable:
-//   1. Uncomment the aiService import above
-//   2. Uncomment the route handlers below
-//   3. The frontend AIChat component also needs to be re-enabled in DashboardPage.tsx
-// =============================================================================
+const prisma = new PrismaClient();
+
+const timeoutSchema = z.union([z.literal(0), z.literal(10), z.literal(30), z.literal(60), z.literal(120)]).optional();
 
 export async function aiRoutes(server: FastifyInstance) {
 
-    // =========================================================================
-    // CHAT ENDPOINT - COMMENTED OUT (Groq API limit)
-    // =========================================================================
-    // server.post('/chat', async (request, reply) => {
-    //     const schema = z.object({
-    //         message: z.string(),
-    //     });
-    //
-    //     const result = schema.safeParse(request.body);
-    //     if (!result.success) {
-    //         return reply.status(400).send({ error: result.error });
-    //     }
-    //
-    //     const { message } = result.data;
-    //     const response = await aiService.chat(message);
-    //     return { reply: response };
-    // });
+    const getRuntimeContext = async (userId: string) => {
+        const preference = await prisma.userAiPreference.findUnique({
+            where: { userId },
+            include: { activeCredential: true },
+        });
 
-    // Return a friendly message if someone tries to use the chat
-    server.post('/chat', async (request, reply) => {
-        return { reply: '🚧 AI Chat is temporarily disabled to conserve API limits. It will be back soon!' };
+        const byokEnabled = Boolean(preference?.byokEnabled);
+        const activeCredential = preference?.activeCredential;
+        const hasVerifiedCredential = Boolean(activeCredential?.isVerified);
+
+        const timeoutOptions = {
+            timeoutMs: preference?.timeoutDisabled ? undefined : (preference?.timeoutSeconds || 30) * 1000,
+            disableTimeout: preference?.timeoutDisabled || false,
+        };
+
+        if (!byokEnabled || !activeCredential || !hasVerifiedCredential) {
+            return {
+                byokEnabled,
+                hasVerifiedCredential,
+                timeoutOptions,
+                aiOptions: {
+                    provider: 'hybrid',
+                    ...timeoutOptions,
+                } as AiExecutionOptions,
+            };
+        }
+
+        return {
+            byokEnabled,
+            hasVerifiedCredential,
+            timeoutOptions,
+            aiOptions: {
+                provider: activeCredential.provider,
+                model: activeCredential.model,
+                baseUrl: activeCredential.baseUrl || undefined,
+                apiKey: decryptText(activeCredential.encryptedApiKey),
+                ...timeoutOptions,
+            } as AiExecutionOptions,
+        };
+    };
+
+    server.post('/chat', { preHandler: requireAuth }, async (request, reply) => {
+        const schema = z.object({
+            message: z.string().min(1),
+            sessionTimeoutSeconds: timeoutSchema,
+        });
+
+        const parsed = schema.safeParse(request.body);
+        if (!parsed.success) {
+            return reply.status(400).send({ error: parsed.error.message });
+        }
+
+        const userId = (request as any).userId as string;
+        const runtime = await getRuntimeContext(userId);
+
+        const timeoutValue = parsed.data.sessionTimeoutSeconds;
+        const sessionWantsNoLimit = timeoutValue === 0;
+        const canUseCustomTimer = runtime.byokEnabled && runtime.hasVerifiedCredential;
+
+        const effectiveOptions: AiExecutionOptions = {
+            ...runtime.aiOptions,
+            timeoutMs: canUseCustomTimer
+                ? (timeoutValue && timeoutValue > 0 ? timeoutValue * 1000 : runtime.timeoutOptions.timeoutMs)
+                : 30000,
+            disableTimeout: canUseCustomTimer ? sessionWantsNoLimit || runtime.timeoutOptions.disableTimeout : false,
+        };
+
+        try {
+            const replyText = await aiService.chatStrict(parsed.data.message, effectiveOptions);
+            return {
+                reply: replyText,
+                usedSystemFallback: false,
+                timerUnlocked: canUseCustomTimer,
+            };
+        } catch (customError: any) {
+            const triedCustom = runtime.byokEnabled && runtime.hasVerifiedCredential;
+            if (!triedCustom) {
+                return reply.status(500).send({ error: customError?.message || 'Chat failed.' });
+            }
+
+            try {
+                const fallbackReply = await aiService.chatStrict(parsed.data.message, {
+                    provider: 'hybrid',
+                    timeoutMs: 30000,
+                    disableTimeout: false,
+                });
+
+                return {
+                    reply: fallbackReply,
+                    usedSystemFallback: true,
+                    fallbackMessage: 'Your API key failed - used system key for this request.',
+                    timerUnlocked: canUseCustomTimer,
+                };
+            } catch (fallbackError: any) {
+                return reply.status(500).send({ error: fallbackError?.message || 'Chat failed.' });
+            }
+        }
     });
 
-    // =========================================================================
-    // SUMMARIZE ENDPOINT - COMMENTED OUT (Groq API limit)
-    // =========================================================================
-    // server.post('/summarize', async (request, reply) => {
-    //     const schema = z.object({
-    //         text: z.string(),
-    //     });
-    //
-    //     const result = schema.safeParse(request.body);
-    //     if (!result.success) {
-    //         return reply.status(400).send({ error: result.error });
-    //     }
-    //
-    //     const { text } = result.data;
-    //     const summary = await aiService.summarize(text);
-    //     return summary;
-    // });
+    server.post('/summarize', { preHandler: requireAuth }, async (request, reply) => {
+        const schema = z.object({
+            text: z.string().min(1),
+            sessionTimeoutSeconds: timeoutSchema,
+        });
 
-    server.post('/summarize', async (request, reply) => {
-        return { summary: 'AI summarization is temporarily disabled.', insights: [], why: 'API limits reached.', topic: 'N/A' };
+        const parsed = schema.safeParse(request.body);
+        if (!parsed.success) {
+            return reply.status(400).send({ error: parsed.error.message });
+        }
+
+        const userId = (request as any).userId as string;
+        const runtime = await getRuntimeContext(userId);
+
+        const timeoutValue = parsed.data.sessionTimeoutSeconds;
+        const sessionWantsNoLimit = timeoutValue === 0;
+        const canUseCustomTimer = runtime.byokEnabled && runtime.hasVerifiedCredential;
+
+        const effectiveOptions: AiExecutionOptions = {
+            ...runtime.aiOptions,
+            timeoutMs: canUseCustomTimer
+                ? (timeoutValue && timeoutValue > 0 ? timeoutValue * 1000 : runtime.timeoutOptions.timeoutMs)
+                : 30000,
+            disableTimeout: canUseCustomTimer ? sessionWantsNoLimit || runtime.timeoutOptions.disableTimeout : false,
+        };
+
+        try {
+            const result = await aiService.summarizeStrict(parsed.data.text, effectiveOptions);
+            return { ...result, usedSystemFallback: false, timerUnlocked: canUseCustomTimer };
+        } catch (customError: any) {
+            const triedCustom = runtime.byokEnabled && runtime.hasVerifiedCredential;
+            if (!triedCustom) {
+                return reply.status(500).send({ error: customError?.message || 'Summarization failed.' });
+            }
+
+            try {
+                const result = await aiService.summarizeStrict(parsed.data.text, {
+                    provider: 'hybrid',
+                    timeoutMs: 30000,
+                    disableTimeout: false,
+                });
+                return {
+                    ...result,
+                    usedSystemFallback: true,
+                    fallbackMessage: 'Your API key failed - used system key for this request.',
+                    timerUnlocked: canUseCustomTimer,
+                };
+            } catch (fallbackError: any) {
+                return reply.status(500).send({ error: fallbackError?.message || 'Summarization failed.' });
+            }
+        }
     });
 }

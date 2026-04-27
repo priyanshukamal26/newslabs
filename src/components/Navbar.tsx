@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, LogOut, AlertTriangle, RefreshCw } from "lucide-react";
+import { Menu, X, LogOut, AlertTriangle, RefreshCw, Sun, Moon } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "../lib/auth";
 import { useStatus } from "../lib/status";
+import { api } from "../lib/api";
 
 const navItems = [
   { label: "Home", path: "/" },
@@ -14,7 +15,8 @@ export function Navbar() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const { isAuthenticated, logout } = useAuth();
+  const [isTogglingTheme, setIsTogglingTheme] = useState(false);
+  const { user, isAuthenticated, logout, updateUser } = useAuth();
   const { services, isChecking, setDetailsOpen, checkHealth } = useStatus();
 
   // Close mobile menu on route change
@@ -22,12 +24,26 @@ export function Navbar() {
     setMobileOpen(false);
   }, [location.pathname]);
 
+  const toggleTheme = async () => {
+    if (!user) return;
+    setIsTogglingTheme(true);
+    try {
+        const newMode = !(user.darkMode ?? true); // Default dark
+        await api.put('/user/profile', { darkMode: newMode });
+        updateUser({ ...user, darkMode: newMode });
+    } catch (error) {
+        console.error("Failed to toggle theme", error);
+    } finally {
+        setIsTogglingTheme(false);
+    }
+  };
+
   const isActive = (path: string) => location.pathname === path;
 
   return (
     <>
       {/* Main navbar */}
-      <header className="fixed top-0 inset-x-0 z-40 bg-[#F9F9F7] border-b-2 border-[#111111]">
+      <header className="fixed top-0 inset-x-0 z-40 bg-paper border-b-2 border-ink">
         <nav className="max-w-screen-xl mx-auto px-4 h-14 flex items-center justify-between gap-6">
 
           {/* Logo */}
@@ -42,7 +58,7 @@ export function Navbar() {
               className="h-6 w-auto object-contain"
             />
             <span
-              className="font-black text-lg tracking-tight text-[#111111] leading-none hidden sm:block"
+              className="font-black text-lg tracking-tight text-ink leading-none hidden sm:block"
               style={{ fontFamily: "'Playfair Display', serif" }}
             >
               NewsLabs
@@ -55,10 +71,10 @@ export function Navbar() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`px-4 h-14 flex items-center text-xs font-bold uppercase tracking-[0.15em] border-r border-[#111111] transition-colors duration-150
+                className={`px-4 h-14 flex items-center text-xs font-bold uppercase tracking-[0.15em] border-r border-ink transition-colors duration-150
                   ${isActive(item.path)
-                    ? "bg-[#111111] text-[#F9F9F7]"
-                    : "text-[#111111] hover:bg-[#111111] hover:text-[#F9F9F7]"
+                    ? "bg-ink text-paper"
+                    : "text-ink hover:bg-ink hover:text-paper"
                   }`}
                 style={{ fontFamily: "'Inter', sans-serif" }}
               >
@@ -68,10 +84,10 @@ export function Navbar() {
             {isAuthenticated && (
               <Link
                 to="/dashboard"
-                className={`px-4 h-14 flex items-center text-xs font-bold uppercase tracking-[0.15em] border-r border-[#111111] transition-colors duration-150
+                className={`px-4 h-14 flex items-center text-xs font-bold uppercase tracking-[0.15em] border-r border-ink transition-colors duration-150
                   ${isActive("/dashboard")
-                    ? "bg-[#111111] text-[#F9F9F7]"
-                    : "text-[#111111] hover:bg-[#111111] hover:text-[#F9F9F7]"
+                    ? "bg-ink text-paper"
+                    : "text-ink hover:bg-ink hover:text-paper"
                   }`}
                 style={{ fontFamily: "'Inter', sans-serif" }}
               >
@@ -83,11 +99,11 @@ export function Navbar() {
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-4 ml-auto">
             {/* Status Controls */}
-            <div className="flex items-center gap-2 border-r border-[#E5E5E0] pr-4">
+            <div className="flex items-center gap-2 border-r border-divider-grey pr-4">
               <button
                 onClick={() => setDetailsOpen(true)}
                 title="View System Status"
-                className="flex items-center gap-1.5 px-3 h-8 border border-[#111111] hover:bg-neutral-100 transition-colors"
+                className="flex items-center gap-1.5 px-3 h-8 border border-ink hover:bg-ink/10 transition-colors"
                 style={{ borderRadius: 0 }}
               >
                 {services.map((svc) => (
@@ -96,7 +112,7 @@ export function Navbar() {
                     className={`block w-2.5 h-2.5 ${svc.status === "checking" ? "bg-neutral-300 animate-pulse" :
                       svc.status === "operational" ? "bg-emerald-500" :
                         svc.status === "degraded" ? "bg-amber-400 animate-pulse" :
-                          "bg-[#CC0000] animate-pulse"
+                          "bg-editorial-red animate-pulse"
                       }`}
                     style={{ borderRadius: 0 }}
                   />
@@ -113,18 +129,34 @@ export function Navbar() {
                 }}
                 disabled={isChecking}
                 title="Refresh Health Check"
-                className={`w-8 h-8 flex items-center justify-center border border-[#111111] transition-colors ${isChecking ? "bg-[#111111] text-white" : "text-neutral-500 hover:text-[#111111] hover:bg-neutral-100"}`}
+                className={`w-8 h-8 flex items-center justify-center border border-ink transition-colors ${isChecking ? "bg-ink text-paper" : "text-neutral-500 hover:text-paper hover:bg-ink"}`}
                 style={{ borderRadius: 0 }}
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${isChecking ? 'animate-spin' : ''}`} />
               </button>
             </div>
+            
+            {isAuthenticated && (
+              <button
+                onClick={toggleTheme}
+                disabled={isTogglingTheme}
+                title="Toggle Theme"
+                className={`w-8 h-8 flex items-center justify-center border border-ink text-neutral-500 transition-colors hover:text-paper hover:bg-ink mr-2`}
+                style={{ borderRadius: 0 }}
+              >
+                {user?.darkMode === false ? (
+                    <Moon className="h-4 w-4" />
+                ) : (
+                    <Sun className="h-4 w-4" />
+                )}
+              </button>
+            )}
             {isAuthenticated ? (
               <button
                 onClick={() => setShowLogoutConfirm(true)}
                 title="Sign Out"
                 aria-label="Sign Out"
-                className="min-h-[36px] px-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] border border-[#111111] text-[#111111] hover:bg-[#111111] hover:text-[#F9F9F7] transition-all duration-150"
+                className="min-h-[36px] px-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] border border-ink text-ink hover:bg-ink hover:text-paper transition-all duration-150"
                 style={{ fontFamily: "'Inter', sans-serif", borderRadius: 0 }}
               >
                 <LogOut className="h-3.5 w-3.5" />
@@ -133,7 +165,7 @@ export function Navbar() {
             ) : (
               <Link
                 to="/auth"
-                className="min-h-[36px] px-5 flex items-center text-xs font-bold uppercase tracking-[0.15em] bg-[#111111] text-[#F9F9F7] border border-[#111111] hover:bg-white hover:text-[#111111] transition-all duration-150"
+                className="min-h-[36px] px-5 flex items-center text-xs font-bold uppercase tracking-[0.15em] bg-ink text-paper border border-ink hover:bg-paper hover:text-ink transition-all duration-150"
                 style={{ fontFamily: "'Inter', sans-serif", borderRadius: 0 }}
               >
                 Get Started
@@ -144,7 +176,7 @@ export function Navbar() {
           {/* Mobile toggle */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden ml-auto min-h-[44px] min-w-[44px] flex items-center justify-center text-[#111111] border border-[#111111] hover:bg-[#111111] hover:text-[#F9F9F7] transition-colors duration-150"
+            className="md:hidden ml-auto min-h-[44px] min-w-[44px] flex items-center justify-center text-ink border border-ink hover:bg-ink hover:text-paper transition-colors duration-150"
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
             style={{ borderRadius: 0 }}
           >
@@ -160,17 +192,17 @@ export function Navbar() {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="md:hidden overflow-hidden bg-[#F9F9F7] border-t-2 border-[#111111]"
+              className="md:hidden overflow-hidden bg-paper border-t-2 border-ink"
             >
               <div className="flex flex-col">
                 {navItems.map((item) => (
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`px-6 py-4 text-xs font-bold uppercase tracking-[0.15em] border-b border-[#111111] transition-colors duration-150
+                    className={`px-6 py-4 text-xs font-bold uppercase tracking-[0.15em] border-b border-ink transition-colors duration-150
                       ${isActive(item.path)
-                        ? "bg-[#111111] text-[#F9F9F7]"
-                        : "text-[#111111] hover:bg-neutral-100"
+                        ? "bg-ink text-paper"
+                        : "text-ink hover:bg-neutral-100"
                       }`}
                     style={{ fontFamily: "'Inter', sans-serif" }}
                   >
@@ -180,10 +212,10 @@ export function Navbar() {
                 {isAuthenticated && (
                   <Link
                     to="/dashboard"
-                    className={`px-6 py-4 text-xs font-bold uppercase tracking-[0.15em] border-b border-[#111111] transition-colors duration-150
+                    className={`px-6 py-4 text-xs font-bold uppercase tracking-[0.15em] border-b border-ink transition-colors duration-150
                       ${isActive("/dashboard")
-                        ? "bg-[#111111] text-[#F9F9F7]"
-                        : "text-[#111111] hover:bg-neutral-100"
+                        ? "bg-ink text-paper"
+                        : "text-ink hover:bg-neutral-100"
                       }`}
                     style={{ fontFamily: "'Inter', sans-serif" }}
                   >
@@ -193,7 +225,7 @@ export function Navbar() {
                 {isAuthenticated ? (
                   <button
                     onClick={() => { setShowLogoutConfirm(true); setMobileOpen(false); }}
-                    className="px-6 py-4 text-xs font-bold uppercase tracking-[0.15em] text-left text-[#CC0000] border-b border-[#111111] hover:bg-red-50 transition-colors duration-150 flex items-center gap-2"
+                    className="px-6 py-4 text-xs font-bold uppercase tracking-[0.15em] text-left text-editorial-red border-b border-ink hover:bg-red-50 transition-colors duration-150 flex items-center gap-2"
                     style={{ fontFamily: "'Inter', sans-serif" }}
                   >
                     <LogOut className="h-3.5 w-3.5" /> Sign Out
@@ -201,7 +233,7 @@ export function Navbar() {
                 ) : (
                   <Link
                     to="/auth"
-                    className="px-6 py-4 text-xs font-bold uppercase tracking-[0.15em] bg-[#111111] text-[#F9F9F7] hover:bg-neutral-800 transition-colors duration-150"
+                    className="px-6 py-4 text-xs font-bold uppercase tracking-[0.15em] bg-ink text-paper hover:bg-neutral-800 transition-colors duration-150"
                     style={{ fontFamily: "'Inter', sans-serif" }}
                   >
                     Get Started →
@@ -223,21 +255,21 @@ export function Navbar() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#111111]/60 backdrop-blur-none"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/60 backdrop-blur-none"
           >
             <motion.div
               initial={{ scale: 0.97, opacity: 0, y: 8 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.97, opacity: 0, y: 8 }}
               transition={{ duration: 0.15 }}
-              className="bg-[#F9F9F7] w-full max-w-sm border-2 border-[#111111] p-8 text-center"
+              className="bg-paper w-full max-w-sm border-2 border-ink p-8 text-center"
               style={{ borderRadius: 0 }}
             >
-              <div className="w-12 h-12 border-2 border-[#CC0000] text-[#CC0000] flex items-center justify-center mx-auto mb-5">
+              <div className="w-12 h-12 border-2 border-editorial-red text-editorial-red flex items-center justify-center mx-auto mb-5">
                 <AlertTriangle className="w-6 h-6" />
               </div>
               <h3
-                className="text-xl font-black mb-2 text-[#111111]"
+                className="text-xl font-black mb-2 text-ink"
                 style={{ fontFamily: "'Playfair Display', serif" }}
               >
                 Sign Out
@@ -251,14 +283,14 @@ export function Navbar() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowLogoutConfirm(false)}
-                  className="flex-1 py-2.5 text-xs font-bold uppercase tracking-[0.15em] border border-[#111111] text-[#111111] hover:bg-neutral-100 transition-colors duration-150"
+                  className="flex-1 py-2.5 text-xs font-bold uppercase tracking-[0.15em] border border-ink text-ink hover:bg-neutral-100 transition-colors duration-150"
                   style={{ fontFamily: "'Inter', sans-serif", borderRadius: 0 }}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => { setShowLogoutConfirm(false); logout(); }}
-                  className="flex-1 py-2.5 text-xs font-bold uppercase tracking-[0.15em] bg-[#CC0000] text-white hover:bg-red-700 transition-colors duration-150"
+                  className="flex-1 py-2.5 text-xs font-bold uppercase tracking-[0.15em] bg-editorial-red text-white hover:bg-red-700 transition-colors duration-150"
                   style={{ fontFamily: "'Inter', sans-serif", borderRadius: 0 }}
                 >
                   Yes, Sign Out

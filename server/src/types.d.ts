@@ -3,3 +3,7 @@ declare module 'rss-parser' {
         parseURL(url: string): Promise<any>;
     }
 }
+
+declare module 'xml2js' {
+    export function parseStringPromise(xml: string): Promise<any>;
+}

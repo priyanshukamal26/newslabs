@@ -1,270 +1,445 @@
 import ollama from 'ollama';
 import Groq from 'groq-sdk';
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+export interface AiExecutionOptions {
+    provider?: string;
+    apiKey?: string;
+    model?: string;
+    baseUrl?: string;
+    timeoutMs?: number;
+    disableTimeout?: boolean;
+    summaryMode?: 'concise' | 'balanced' | 'detailed';
+}
+
+export interface SummaryResult {
+    summary: string;
+    insights: string[];
+    why: string;
+    topic: string;
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs?: number, disableTimeout?: boolean): Promise<T> {
+    if (disableTimeout || !timeoutMs || timeoutMs <= 0 || !Number.isFinite(timeoutMs)) {
+        return promise;
+    }
+
+    return new Promise<T>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error(`AI request timed out after ${timeoutMs}ms`)), timeoutMs);
+        promise
+            .then((value) => {
+                clearTimeout(timer);
+                resolve(value);
+            })
+            .catch((error) => {
+                clearTimeout(timer);
+                reject(error);
+            });
+    });
+}
+
+function normalizeProvider(provider?: string): string {
+    const value = (provider || '').trim().toLowerCase();
+    if (!value) return 'hybrid';
+    return value;
+}
+
+// ── Prompt builders ────────────────────────────────────────────────────────────
+
+function buildConcisePrompt(text: string): string {
+    return `You are an expert news analyst for a premium news aggregation platform.
+
+Write a compact but highly accurate summary that keeps the most important facts and avoids filler. Preserve names, numbers, dates, prices, measurements, and outcomes whenever they matter. Do not generalize away important details.
+
+Rules:
+- No invented facts.
+- No vague wording.
+- Keep the article faithful and specific.
+- Insights should be short but meaningful.
+- "Why" should be brief and useful.
+- Topic must be exactly one allowed label.
+
+Article content:
+"${text.substring(0, 5000)}"
+
+Return only valid JSON with exactly this structure:
+{
+  "summary": "A 2-3 sentence summary that captures the core news.",
+  "insights": [
+    "Insight 1",
+    "Insight 2",
+    "Insight 3"
+  ],
+  "why": "A 1-sentence explanation of why this article matters.",
+  "topic": "Exactly one from: AI & ML, Web Dev, Science, Startups, Crypto, Design, DevOps, Security, Politics, Business, Health, Sports, Entertainment, Climate, Space, India, World, General"
+}
+
+Important:
+- Output JSON only.
+- Do not add any extra keys.
+- Do not add markdown or commentary.`;
+}
+
+function buildBalancedPrompt(text: string): string {
+    return `You are an expert news analyst for a premium news aggregation platform.
+
+Write a balanced summary that gives enough context for clear understanding while staying compact. Preserve the most important concrete details: names, organizations, dates, numbers, prices, measurements, outcomes, and direct implications. Avoid generic phrasing and do not omit important specifics.
+
+Rules:
+- Do not invent anything.
+- Keep the summary readable and factual.
+- Make the insights distinct and useful.
+- Include the article's main angle and its real-world significance.
+- If the article contains technical, scientific, financial, or political details, preserve them accurately.
+- Topic must be exactly one allowed label.
+
+Article content:
+"${text.substring(0, 5000)}"
+
+Return only valid JSON with exactly this structure:
+{
+  "summary": "A 4-5 sentence summary that is specific and informative.",
+  "insights": [
+    "Insight 1",
+    "Insight 2",
+    "Insight 3",
+    "Insight 4",
+    "Insight 5"
+  ],
+  "why": "A 2-sentence explanation of why this article matters.",
+  "topic": "Exactly one from: AI & ML, Web Dev, Science, Startups, Crypto, Design, DevOps, Security, Politics, Business, Health, Sports, Entertainment, Climate, Space, India, World, General"
+}
+
+Important:
+- Output JSON only.
+- Do not add any extra keys.
+- Do not add markdown or commentary.`;
+}
+
+function buildDetailedPrompt(text: string): string {
+    return `You are an expert news analyst for a premium news aggregation platform.
+
+Write a detailed, high-fidelity summary that captures the article's key facts, context, nuance, and significance. Preserve specific names, numbers, dates, places, claims, outcomes, comparisons, and any technical or domain-specific details that help the reader fully understand the story.
+
+Rules:
+- Do not hallucinate or infer unsupported facts.
+- Do not turn specific facts into vague generalities.
+- Keep the article's framing accurate, especially for science, business, politics, technology, and product review pieces.
+- Include the most important supporting details, not just the headline claim.
+- The insights should cover different angles: main takeaway, context, implication, technical detail, comparison, or consequence.
+- The "why" section should explain both immediate relevance and broader significance.
+- Topic must be exactly one allowed label.
+
+Article content:
+"${text.substring(0, 5000)}"
+
+Return only valid JSON with exactly this structure:
+{
+  "summary": "A 6-8 sentence summary that is detailed, specific, and faithful to the article.",
+  "insights": [
+    "Insight 1",
+    "Insight 2",
+    "Insight 3",
+    "Insight 4",
+    "Insight 5"
+  ],
+  "why": "A 2-3 sentence explanation of why this article matters.",
+  "topic": "Exactly one from: AI & ML, Web Dev, Science, Startups, Crypto, Design, DevOps, Security, Politics, Business, Health, Sports, Entertainment, Climate, Space, India, World, General"
+}
+
+Important:
+- Output JSON only.
+- Do not add any extra keys.
+- Do not add markdown or commentary.`;
+}
+
+function buildPrompt(text: string, mode?: 'concise' | 'balanced' | 'detailed'): string {
+    switch (mode) {
+        case 'concise': return buildConcisePrompt(text);
+        case 'detailed': return buildDetailedPrompt(text);
+        default: return buildBalancedPrompt(text);
+    }
+}
+
+// ── Service class ──────────────────────────────────────────────────────────────
 
 export class AiService {
-    private model = process.env.AI_MODEL || 'llama3';
-    private provider = process.env.AI_PROVIDER || 'local';
-    private groq: Groq | null = null;
-    private gemini: GoogleGenerativeAI | null = null;
-    private geminiModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+    private localModel = process.env.AI_MODEL || 'llama3';
+    private defaultProvider = normalizeProvider(process.env.AI_PROVIDER || 'hybrid');
+    private systemGroqKey = process.env.GROQ_API_KEY || '';
+    private systemGroqModel = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
+    private systemGeminiKey = process.env.GEMINI_API_KEY || '';
+    private systemGeminiModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
-    constructor() {
+    private getProvider(provider?: string): string {
+        return normalizeProvider(provider || this.defaultProvider);
+    }
+
+    async chat(message: string, options?: AiExecutionOptions): Promise<string> {
         try {
-            this.groq = new Groq({ apiKey: process.env.GROQ_API_KEY || 'dummy_key' });
-        } catch (e) {
-            console.warn("Groq SDK initialization failed.");
+            return await this.chatStrict(message, options);
+        } catch (error) {
+            console.error('AI chat failed:', error);
+            return "I'm having trouble connecting to AI right now. Please try again.";
         }
-        try {
-            if (process.env.GEMINI_API_KEY) {
-                this.gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    }
+
+    async chatStrict(message: string, options?: AiExecutionOptions): Promise<string> {
+        const provider = this.getProvider(options?.provider);
+
+        if (provider === 'hybrid') {
+            try {
+                return await this.chatGroq(message, options);
+            } catch {
+                return this.chatGemini(message, options);
             }
-        } catch (e) {
-            console.warn("Gemini SDK initialization failed.");
         }
+
+        if (provider.includes('groq')) {
+            return this.chatGroq(message, options);
+        }
+
+        if (provider.includes('gemini')) {
+            return this.chatGemini(message, options);
+        }
+
+        if (provider === 'local' || provider === 'ollama') {
+            return this.chatLocal(message, options);
+        }
+
+        if (options?.baseUrl) {
+            return this.chatOpenAiCompatible(message, options);
+        }
+
+        throw new Error(`Unsupported provider: ${provider}. Add base URL for custom provider.`);
     }
 
-    async chat(message: string): Promise<string> {
-        if (this.provider === 'groq') {
-            return this.chatGroq(message);
-        } else if (this.provider === 'local') {
-            return this.chatLocal(message);
-        } else {
-            return "External API mode not yet implemented.";
-        }
-    }
-
-    private async chatLocal(message: string): Promise<string> {
+    async summarize(text: string, options?: AiExecutionOptions): Promise<SummaryResult> {
         try {
-            const response = await ollama.chat({
-                model: this.model,
-                messages: [{ role: 'user', content: message }],
-            });
-            return response.message.content;
+            return await this.summarizeStrict(text, options);
         } catch (error) {
-            console.error('Ollama Chat Error:', error);
-            return "I'm having trouble connecting to my local brain. Is Ollama running?";
+            console.error('AI summarize failed:', error);
+            return {
+                summary: 'Error generating summary. The AI service may be busy. Try again shortly.',
+                insights: [],
+                why: 'Analysis failed.',
+                topic: 'Uncategorized',
+            };
         }
     }
 
-    private async chatGroq(message: string): Promise<string> {
-        if (!this.groq) return "Groq API key not configured.";
-        try {
-            const completion = await this.groq.chat.completions.create({
+    async summarizeStrict(text: string, options?: AiExecutionOptions): Promise<SummaryResult> {
+        const provider = this.getProvider(options?.provider);
+        const prompt = buildPrompt(text, options?.summaryMode);
+
+        if (provider === 'hybrid') {
+            try {
+                return await this.summarizeGroq(prompt, options);
+            } catch {
+                return this.summarizeGemini(prompt, options);
+            }
+        }
+
+        if (provider.includes('groq')) {
+            return this.summarizeGroq(prompt, options);
+        }
+
+        if (provider.includes('gemini')) {
+            return this.summarizeGemini(prompt, options);
+        }
+
+        if (provider === 'local' || provider === 'ollama') {
+            return this.summarizeLocal(prompt, options);
+        }
+
+        if (options?.baseUrl) {
+            return this.summarizeOpenAiCompatible(prompt, options);
+        }
+
+        throw new Error(`Unsupported provider: ${provider}. Add base URL for custom provider.`);
+    }
+
+    private async chatLocal(message: string, options?: AiExecutionOptions): Promise<string> {
+        const response = await withTimeout(
+            ollama.chat({
+                model: options?.model || this.localModel,
                 messages: [{ role: 'user', content: message }],
-                model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
-            });
-            return completion.choices[0]?.message?.content || "No response from Groq.";
-        } catch (error) {
-            console.error('Groq Chat Error:', error);
-            return "Error connecting to Groq API. Please check your API key.";
+            }),
+            options?.timeoutMs,
+            options?.disableTimeout
+        );
+
+        return response.message.content;
+    }
+
+    private async chatGroq(message: string, options?: AiExecutionOptions): Promise<string> {
+        const apiKey = options?.apiKey || this.systemGroqKey;
+        if (!apiKey) throw new Error('Groq API key not configured');
+
+        const groq = new Groq({ apiKey });
+        const completion = await withTimeout(
+            groq.chat.completions.create({
+                messages: [{ role: 'user', content: message }],
+                model: options?.model || this.systemGroqModel,
+            }),
+            options?.timeoutMs,
+            options?.disableTimeout
+        );
+
+        return completion.choices[0]?.message?.content || 'No response from Groq.';
+    }
+
+    private async chatGemini(message: string, options?: AiExecutionOptions): Promise<string> {
+        const apiKey = options?.apiKey || this.systemGeminiKey;
+        if (!apiKey) throw new Error('Gemini API key not configured');
+
+        const client = new GoogleGenerativeAI(apiKey);
+        const model = client.getGenerativeModel({ model: options?.model || this.systemGeminiModel });
+        const result = await withTimeout(
+            model.generateContent(message),
+            options?.timeoutMs,
+            options?.disableTimeout
+        );
+
+        return result.response.text() || 'No response from Gemini.';
+    }
+
+    private async chatOpenAiCompatible(message: string, options?: AiExecutionOptions): Promise<string> {
+        if (!options?.apiKey) throw new Error('Custom provider API key is required.');
+        if (!options?.baseUrl) throw new Error('Custom provider base URL is required.');
+        if (!options?.model) throw new Error('Custom provider model is required.');
+
+        const endpoint = `${options.baseUrl.replace(/\/$/, '')}/chat/completions`;
+        const response = await withTimeout(fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${options.apiKey}`,
+            },
+            body: JSON.stringify({
+                model: options.model,
+                messages: [{ role: 'user', content: message }],
+            }),
+        }), options?.timeoutMs, options?.disableTimeout);
+
+        if (!response.ok) {
+            throw new Error(`Custom provider failed: ${response.status} ${await response.text()}`);
+        }
+
+        const data = await response.json() as any;
+        return data?.choices?.[0]?.message?.content || 'No response from provider.';
+    }
+
+    private async summarizeGroq(prompt: string, options?: AiExecutionOptions): Promise<SummaryResult> {
+        const apiKey = options?.apiKey || this.systemGroqKey;
+        if (!apiKey) throw new Error('Groq API key not configured');
+
+        const groq = new Groq({ apiKey });
+        const completion = await withTimeout(
+            groq.chat.completions.create({
+                messages: [{ role: 'user', content: prompt }],
+                model: options?.model || this.systemGroqModel,
+                response_format: { type: 'json_object' },
+                max_tokens: 1200,
+            }),
+            options?.timeoutMs,
+            options?.disableTimeout
+        );
+
+        const content = completion.choices[0]?.message?.content;
+        if (!content) throw new Error('No content returned by Groq.');
+        return JSON.parse(content) as SummaryResult;
+    }
+
+    private async summarizeGemini(prompt: string, options?: AiExecutionOptions): Promise<SummaryResult> {
+        const apiKey = options?.apiKey || this.systemGeminiKey;
+        if (!apiKey) throw new Error('Gemini API key not configured');
+
+        const client = new GoogleGenerativeAI(apiKey);
+        const model = client.getGenerativeModel({ model: options?.model || this.systemGeminiModel });
+
+        const result = await withTimeout(
+            model.generateContent(prompt + '\n\nRespond strictly in valid JSON.'),
+            options?.timeoutMs,
+            options?.disableTimeout
+        );
+
+        let text = result.response.text();
+        text = text.replace(/```json\n?/g, '').replace(/```/g, '').trim();
+        return JSON.parse(text) as SummaryResult;
+    }
+
+    private async summarizeOpenAiCompatible(prompt: string, options?: AiExecutionOptions): Promise<SummaryResult> {
+        const message = `${prompt}\n\nReturn JSON only.`;
+        const content = await this.chatOpenAiCompatible(message, options);
+        return JSON.parse(content) as SummaryResult;
+    }
+
+    private async summarizeLocal(prompt: string, options?: AiExecutionOptions): Promise<SummaryResult> {
+        const response = await withTimeout(
+            ollama.chat({
+                model: options?.model || this.localModel,
+                messages: [{ role: 'user', content: prompt }],
+                format: 'json',
+            }),
+            options?.timeoutMs,
+            options?.disableTimeout
+        );
+
+        return JSON.parse(response.message.content) as SummaryResult;
+    }
+
+    async validateCredential(params: {
+        provider: string;
+        apiKey: string;
+        model: string;
+        baseUrl?: string;
+    }): Promise<{ ok: boolean; message: string }> {
+        const provider = normalizeProvider(params.provider);
+
+        try {
+            if (provider.includes('groq')) {
+                const response = await fetch('https://api.groq.com/openai/v1/models', {
+                    headers: { Authorization: `Bearer ${params.apiKey}` },
+                });
+                if (!response.ok) {
+                    return { ok: false, message: `Groq validation failed (${response.status}).` };
+                }
+                return { ok: true, message: 'Groq key is valid.' };
+            }
+
+            if (provider.includes('gemini')) {
+                const client = new GoogleGenerativeAI(params.apiKey);
+                const model = client.getGenerativeModel({ model: params.model || this.systemGeminiModel });
+                await model.generateContent('Reply with one token: ok');
+                return { ok: true, message: 'Gemini key is valid.' };
+            }
+
+            if (params.baseUrl) {
+                const endpoint = `${params.baseUrl.replace(/\/$/, '')}/models`;
+                const response = await fetch(endpoint, {
+                    headers: { Authorization: `Bearer ${params.apiKey}` },
+                });
+                if (!response.ok) {
+                    return { ok: false, message: `Custom provider validation failed (${response.status}).` };
+                }
+                return { ok: true, message: 'Custom provider key is valid.' };
+            }
+
+            return { ok: false, message: 'Unsupported provider. Add base URL for custom provider validation.' };
+        } catch (error: any) {
+            return { ok: false, message: error?.message || 'Validation failed.' };
         }
     }
 
     async categorize(title: string, snippet: string): Promise<{ topic: string; timeToRead: string }> {
         const wordCount = (snippet || title || '').split(/\s+/).length;
         const minutes = Math.max(1, Math.ceil(wordCount / 200));
-        const timeToRead = `${minutes} min`;
-
-        if (this.provider === 'groq' && this.groq) {
-            try {
-                const completion = await this.groq.chat.completions.create({
-                    messages: [{
-                        role: 'user',
-                        content: `Classify this news article into exactly ONE topic from this list: AI & ML, Web Dev, Science, Startups, Crypto, Design, DevOps, Security, Politics, Business, Health, Sports, Entertainment, Climate, Space.
-CRITICAL INSTRUCTION: If the article discusses nothing from the list, choose the closest generic one or 'Uncategorized'. Be highly accurate. Do NOT guess blindly. Focus strictly on the core theme.
-
-Title: "${title}"
-Snippet: "${(snippet || '').substring(0, 500)}"
-
-Respond with ONLY a JSON object: {"topic": "chosen topic"}`
-                    }],
-                    model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
-                    response_format: { type: 'json_object' },
-                    max_tokens: 50,
-                });
-                const content = completion.choices[0]?.message?.content;
-                if (content) {
-                    const parsed = JSON.parse(content);
-                    return { topic: parsed.topic || 'Uncategorized', timeToRead };
-                }
-            } catch (error) {
-                console.error('Categorization error:', error);
-            }
-        }
-        return { topic: 'Uncategorized', timeToRead };
-    }
-
-    async summarize(text: string, preferredProvider: string = 'hybrid'): Promise<{ summary: string; insights: string[]; why: string; topic: string }> {
-        const prompt = `
-You are an expert news analyst for a premium news aggregation platform. Analyze the following article content thoroughly and provide a detailed, informative breakdown.
-
-Article content:
-"${text.substring(0, 5000)}"
-
-Respond with a JSON object following this exact structure:
-{
-  "summary": "A detailed 4-5 sentence summary. Cover: what happened, who is involved, the broader context, and the immediate impact. CRITICAL REQUIREMENT: NEVER use vague terms like 'a company', 'the product', or 'an official'. ALWAYS use the exact names of companies, people, and products (e.g. 'Apple', 'Tim Cook', 'Vision Pro'). Explicitly list specific product features and concrete facts.",
-  "insights": [
-    "Insight 1: A specific takeaway or implication with concrete details.",
-    "Insight 2: How this connects to broader trends using exact names/technologies.",
-    "Insight 3: What this means for the industry or public.",
-    "Insight 4: A notable detail, feature, or statistic from the article.",
-    "Insight 5: Potential future implications."
-  ],
-  "why": "A 2-sentence explanation of why this article matters. Be concrete about the stakes involving the specific entities.",
-  "topic": "Classify into exactly ONE: AI & ML, Web Dev, Science, Startups, Crypto, Design, DevOps, Security, Politics, Business, Health, Sports, Entertainment, Climate, Space"
-}
-
-Important: Make the summary substantive and informative — a reader should understand the full story without reading the original article. Focus on high-density information.
-    `;
-
-        const MAX_RETRIES = 2;
-        const TIMEOUT_MS = 15000; // 15 second timeout per attempt
-
-        const useGemini = preferredProvider === 'gemini' || preferredProvider === 'hybrid';
-        const useGroq = preferredProvider === 'groq' || preferredProvider === 'hybrid';
-
-        // Force Gemini if preferred
-        if (preferredProvider === 'gemini' && this.gemini) {
-            try {
-                // ... direct Gemini call ...
-                // Reusing fallback logic for now to avoid duplication, but ideally extract to private method
-            } catch (e) { /* fallthrough */ }
-        }
-
-        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-            try {
-                // If user specifically wanted Gemini, or if we rely on hybrid and Groq isn't primary/failed
-                if (preferredProvider === 'gemini') {
-                    throw new Error("Force Gemini"); // Hack to jump to catch block where Gemini fallback lives? No, cleaner to refactor.
-                }
-
-                if (useGroq) {
-                    if (!this.groq) return { summary: 'Groq API Key missing', insights: [], why: 'Config error', topic: 'Config' };
-
-                    // Create abort controller for timeout
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-                    try {
-                        const completion = await this.groq.chat.completions.create(
-                            {
-                                messages: [{ role: 'user', content: prompt }],
-                                model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
-                                response_format: { type: 'json_object' },
-                                max_tokens: 800,
-                            },
-                            { signal: controller.signal }
-                        );
-                        clearTimeout(timeoutId);
-
-                        const content = completion.choices[0]?.message?.content;
-                        return content ? JSON.parse(content) : { summary: 'Error', insights: [], why: 'No content', topic: 'Unknown' };
-                    } catch (err: any) {
-                        clearTimeout(timeoutId);
-
-                        // Rate limited (429) — wait and retry
-                        if (err?.status === 429 || err?.error?.type === 'rate_limit_error') {
-                            const waitMs = Math.min(2000 * Math.pow(2, attempt), 10000); // 2s, 4s, 8s (cap 10s)
-                            console.warn(`Groq rate limited. Waiting ${waitMs}ms before retry ${attempt + 1}/${MAX_RETRIES}...`);
-                            await new Promise(resolve => setTimeout(resolve, waitMs));
-                            continue; // retry
-                        }
-
-                        // Timeout — don't retry, return graceful error
-                        if (err?.name === 'AbortError' || err?.message?.includes('abort')) {
-                            console.warn('Groq request timed out after 15s');
-                            // If hybrid/gemini, allow fallthrough to fallback
-                            if (preferredProvider === 'groq') {
-                                return {
-                                    summary: 'Analysis timed out. Please try again.',
-                                    insights: ['The AI service is currently slow — try again in a moment.'],
-                                    why: 'Request timed out.',
-                                    topic: 'Uncategorized'
-                                };
-                            }
-                            throw new Error("Timeout - trigger fallback");
-                        }
-
-                        // Check if we should fallback immediately on non-retryable errors
-                        if (preferredProvider === 'hybrid' && (err?.status !== 429 && err?.error?.type !== 'rate_limit_error')) {
-                            throw new Error("Non-retryable Groq error - trigger fallback");
-                        }
-
-                        throw err; // re-throw other errors
-                    }
-                }
-            } catch (error: any) {
-                console.error(`AI Processing Error (attempt ${attempt + 1}):`, error?.message || error);
-
-                // On last attempt or non-retryable error, try Gemini fallback
-                if (useGemini && (attempt === MAX_RETRIES || preferredProvider === 'gemini' || error?.message?.includes('fallback'))) {
-                    if (this.gemini) {
-                        try {
-                            console.log("Switching to Gemini...");
-                            const model = this.gemini.getGenerativeModel({ model: this.geminiModel });
-                            const result = await model.generateContent(prompt + "\n\nRespond strictly with VALID JSON.");
-                            const response = result.response;
-                            let text = response.text();
-
-                            // Remove markdown code blocks if present
-                            text = text.replace(/```json\n?/g, '').replace(/```/g, '').trim();
-
-                            return JSON.parse(text);
-                        } catch (geminiError: any) {
-                            console.error("Gemini Fallback Failed:", geminiError?.message || geminiError);
-                        }
-                    }
-                }
-
-                // If this was the last attempt and we're here, we failed
-                if (attempt === MAX_RETRIES) {
-                    return {
-                        summary: 'Error generating summary. The AI service may be busy — try again shortly.',
-                        insights: ['The AI service is experiencing high load.'],
-                        why: 'Analysis unavailable.',
-                        topic: 'Uncategorized'
-                    };
-                }
-
-                // If not last attempt, wait before retry (backoff handled above for rate limits)
-                if (attempt < MAX_RETRIES && !error?.message?.includes('fallback')) {
-                    await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
-                }
-            }
-        }
-
-        // Fallback (should not reach here)
-        return { summary: 'Analysis unavailable.', insights: [], why: 'Service error.', topic: 'Uncategorized' };
+        return { topic: 'Uncategorized', timeToRead: `${minutes} min` };
     }
 
     async analyzeTrending(articleTitles: string[]): Promise<string[]> {
-        if (this.provider === 'groq' && this.groq) {
-            try {
-                const completion = await this.groq.chat.completions.create({
-                    messages: [{
-                        role: 'user',
-                        content: `Based on these recent news headlines, identify the top 7 trending topics/themes right now. Be specific and concise (2-3 words each).
-
-Headlines:
-${articleTitles.slice(0, 30).map((t, i) => `${i + 1}. ${t}`).join('\n')}
-
-Respond with JSON: {"trends": ["trend1", "trend2", ...]}`
-                    }],
-                    model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
-                    response_format: { type: 'json_object' },
-                });
-                const content = completion.choices[0]?.message?.content;
-                if (content) {
-                    const parsed = JSON.parse(content);
-                    return parsed.trends || [];
-                }
-            } catch (error) {
-                console.error('Trending analysis error:', error);
-            }
-        }
-        return ["Agentic AI", "Rust for Web", "Climate Tech", "Edge AI", "Small LMs", "Zero Trust", "CRISPR"];
+        return ['Agentic AI', 'Climate Tech', 'Economic Policy', 'Cybersecurity', 'Startups', 'Health Tech', 'Space'];
     }
 
     async analyzeInsights(articleTitles: string[], articleTopics: string[]): Promise<{
@@ -272,44 +447,10 @@ Respond with JSON: {"trends": ["trend1", "trend2", ...]}`
         mostReadTopic: { name: string; percentage: number };
         emerging: { name: string; growth: string };
     }> {
-        if (this.provider === 'groq' && this.groq) {
-            try {
-                const topicCounts: Record<string, number> = {};
-                articleTopics.forEach(t => { topicCounts[t] = (topicCounts[t] || 0) + 1; });
-                const totalArticles = articleTopics.length || 1;
-
-                const sortedTopics = Object.entries(topicCounts).sort((a, b) => b[1] - a[1]);
-                const topTopic = sortedTopics[0] || ['Unknown', 0];
-
-                const completion = await this.groq.chat.completions.create({
-                    messages: [{
-                        role: 'user',
-                        content: `From these news headlines, identify the single most emerging/rising niche trend (not a broad topic).
-
-Headlines:
-${articleTitles.slice(0, 20).map((t, i) => `${i + 1}. ${t}`).join('\n')}
-
-Respond with JSON: {"emergingTrend": "specific trend name", "growth": "estimated growth like +150%"}`
-                    }],
-                    model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
-                    response_format: { type: 'json_object' },
-                });
-                const content = completion.choices[0]?.message?.content;
-                const emerging = content ? JSON.parse(content) : { emergingTrend: 'Edge AI', growth: '+100%' };
-
-                return {
-                    topTrend: { name: articleTitles[0]?.split(' ').slice(0, 4).join(' ') || 'AI Developments', count: Math.min(articleTitles.length, 5) },
-                    mostReadTopic: { name: topTopic[0], percentage: Math.round((topTopic[1] as number / totalArticles) * 100) },
-                    emerging: { name: emerging.emergingTrend || 'Edge Computing', growth: emerging.growth || '+100%' }
-                };
-            } catch (error) {
-                console.error('Insights analysis error:', error);
-            }
-        }
         return {
-            topTrend: { name: 'Small Language Models', count: 4 },
-            mostReadTopic: { name: 'AI & Machine Learning', percentage: 38 },
-            emerging: { name: 'Edge AI Computing', growth: '+240%' }
+            topTrend: { name: 'Global Developments', count: 4 },
+            mostReadTopic: { name: 'AI & ML', percentage: 32 },
+            emerging: { name: 'AI Safety', growth: '+140%' },
         };
     }
 }

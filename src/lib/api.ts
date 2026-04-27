@@ -25,6 +25,53 @@ export interface Article {
     categorizing?: boolean;
     isLiked?: boolean;
     isSaved?: boolean;
+    sourceType?: 'system' | 'user';
+    sourceUrl?: string;
+    feedCategory?: string | null;
+    // NLP enrichment fields
+    sentiment?: 'Positive' | 'Neutral' | 'Negative';
+    sentimentScore?: number;
+    sentimentSignals?: string[];
+    articleType?: 'Opinion' | 'Factual';
+    reliability?: number;
+    reliabilityTier?: 'High' | 'Medium' | 'Low';
+    reliabilitySignals?: string[];
+    opinionSignals?: string[];
+    classificationConfidence?: number;
+    secondaryTags?: string[];
+    primaryCategory?: string;
+}
+
+export interface UserFeed {
+    id: string;
+    userId: string;
+    url: string;
+    displayName: string;
+    category?: string | null;
+    isActive: boolean;
+    addedAt: string;
+}
+
+export interface ByokCredential {
+    id: string;
+    label: string;
+    provider: string;
+    model: string;
+    baseUrl?: string | null;
+    apiKeyMask: string;
+    isVerified: boolean;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+    lastValidatedAt?: string | null;
+}
+
+export interface ByokPreference {
+    byokEnabled: boolean;
+    timeoutSeconds: 10 | 30 | 60 | 120;
+    timeoutDisabled: boolean;
+    activeCredentialId?: string | null;
+    timerUnlocked: boolean;
 }
 
 export const fetchFeed = async (): Promise<Article[]> => {
@@ -36,8 +83,12 @@ export const triggerRefresh = async (): Promise<void> => {
     await api.post('/content/refresh');
 };
 
-export const analyzeArticle = async (id: string): Promise<Article> => {
-    const { data } = await api.post('/content/analyze', { id });
+export const analyzeArticle = async (
+    id: string,
+    summaryMode?: 'concise' | 'balanced' | 'detailed',
+    forceMode?: string
+): Promise<Article> => {
+    const { data } = await api.post('/content/analyze', { id, summaryMode, forceMode });
     return data;
 };
 
@@ -77,7 +128,14 @@ export const getUserProfile = async () => {
     return data;
 };
 
-export const updateProfile = async (profileData: { name?: string; phone?: string; email?: string; darkMode?: boolean; aiProvider?: string }) => {
+export const updateProfile = async (profileData: {
+    name?: string;
+    phone?: string;
+    email?: string;
+    darkMode?: boolean;
+    aiProvider?: string;
+    summaryMode?: 'concise' | 'balanced' | 'detailed';
+}) => {
     const { data } = await api.put('/user/profile', profileData);
     return data;
 };
@@ -131,8 +189,172 @@ export const getSavedArticles = async () => {
     return data;
 };
 
+// Feed management
+export const getUserFeeds = async () => {
+    const { data } = await api.get('/user/feeds');
+    return data as { feeds: UserFeed[] };
+};
+
+export const validateFeedUrl = async (url: string) => {
+    const { data } = await api.post('/user/feeds/validate', { url });
+    return data as {
+        valid: boolean;
+        feedName: string;
+        preview: Array<{ title: string; link: string; pubDate: string; source: string }>;
+    };
+};
+
+export const addUserFeed = async (payload: { url: string; displayName?: string; category?: string | null }) => {
+    const { data } = await api.post('/user/feeds', payload);
+    return data as { feed: UserFeed };
+};
+
+export const updateUserFeed = async (id: string, payload: { url?: string; displayName?: string; category?: string | null; isActive?: boolean }) => {
+    const { data } = await api.put(`/user/feeds/${id}`, payload);
+    return data as { feed: UserFeed };
+};
+
+export const deleteUserFeed = async (id: string, dryRun = false) => {
+    const { data } = await api.delete(`/user/feeds/${id}${dryRun ? '?dryRun=true' : ''}`);
+    return data as { success: boolean; relatedSavedCount: number; dryRun?: boolean };
+};
+
+export const importFeedsFromOpml = async (opml: string) => {
+    const { data } = await api.post('/user/feeds/import-opml', { opml });
+    return data as { imported: number };
+};
+
+export const exportFeedsOpml = async () => {
+    const response = await api.get('/user/feeds/export-opml', { responseType: 'blob' });
+    return response.data as Blob;
+};
+
+// BYOK multi credential
+export const getByokState = async () => {
+    const { data } = await api.get('/user/ai/byok');
+    return data as { preference: ByokPreference; credentials: ByokCredential[] };
+};
+
+export const updateByokPreference = async (payload: {
+    byokEnabled?: boolean;
+    timeoutSeconds?: 10 | 30 | 60 | 120;
+    timeoutDisabled?: boolean;
+    activeCredentialId?: string | null;
+}) => {
+    const { data } = await api.put('/user/ai/byok/preference', payload);
+    return data as ByokPreference;
+};
+
+export const validateByokCredential = async (payload: {
+    provider: string;
+    model: string;
+    apiKey: string;
+    baseUrl?: string | null;
+}) => {
+    const { data } = await api.post('/user/ai/byok/credentials/validate', payload);
+    return data as { ok: boolean; message: string };
+};
+
+export const createByokCredential = async (payload: {
+    label: string;
+    provider: string;
+    model: string;
+    apiKey: string;
+    baseUrl?: string | null;
+    makeActive?: boolean;
+}) => {
+    const { data } = await api.post('/user/ai/byok/credentials', payload);
+    return data as { credential: ByokCredential; message: string };
+};
+
+export const activateByokCredential = async (id: string) => {
+    const { data } = await api.put(`/user/ai/byok/credentials/${id}/activate`);
+    return data as { success: boolean };
+};
+
+export const deleteByokCredential = async (id: string) => {
+    const { data } = await api.delete(`/user/ai/byok/credentials/${id}`);
+    return data as { success: boolean };
+};
+
 // Public Daily Brief
 export const getPublicDailyBrief = async (): Promise<{ articles: any[], cachedAt: string, expiresAt: string }> => {
     const { data } = await api.get('/public/daily-brief');
+    return data;
+};
+
+// ── Bot Notification Settings ─────────────────────────────────────────────────
+
+export interface BotSettings {
+    telegramEnabled: boolean;
+    telegramConnected: boolean;
+    telegramChatIdMask: string | null;
+    discordEnabled: boolean;
+    discordConnected: boolean;
+    discordWebhookMask: string | null;
+    activeSlots: string[];
+}
+
+export type NotificationSlot = 'morning' | 'noon' | 'evening' | 'night' | 'instant';
+
+export interface NotificationLogEntry {
+    slot: NotificationSlot;
+    slotLabel: string;
+    sentAt: string;
+    articleIds: string[];
+    articleTitles: string[];
+    articleLinks: string[];
+    articleSources: string[];
+    articleTopics: string[];
+    selectionReason: string;
+    platforms: Array<{ platform: string; success: boolean; errorMessage?: string | null }>;
+}
+
+export const getBotSettings = async (): Promise<BotSettings> => {
+    const { data } = await api.get('/notifications/bot-settings');
+    return data;
+};
+
+export const updateBotSettings = async (payload: {
+    telegramEnabled?: boolean;
+    discordEnabled?: boolean;
+    activeSlots?: NotificationSlot[];
+}) => {
+    const { data } = await api.put('/notifications/bot-settings', payload);
+    return data;
+};
+
+export const connectTelegram = async (): Promise<{ deepLink: string; token: string; expiresInMs: number }> => {
+    const { data } = await api.post('/notifications/telegram/connect');
+    return data;
+};
+
+export const pollTelegramStatus = async (): Promise<{ connected: boolean; enabled: boolean }> => {
+    const { data } = await api.get('/notifications/telegram/status');
+    return data;
+};
+
+export const disconnectTelegram = async () => {
+    const { data } = await api.delete('/notifications/telegram/disconnect');
+    return data;
+};
+
+export const connectDiscord = async (webhookUrl: string) => {
+    const { data } = await api.post('/notifications/discord/connect', { webhookUrl });
+    return data as { success: boolean; message: string };
+};
+
+export const disconnectDiscord = async () => {
+    const { data } = await api.delete('/notifications/discord/disconnect');
+    return data;
+};
+
+export const getNotificationLogs = async (): Promise<{ logs: NotificationLogEntry[] }> => {
+    const { data } = await api.get('/notifications/logs');
+    return data;
+};
+
+export const sendTestNotification = async (platform: 'telegram' | 'discord' | 'both' = 'both') => {
+    const { data } = await api.post('/notifications/test', { platform });
     return data;
 };

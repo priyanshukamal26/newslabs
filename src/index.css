@@ -56,11 +56,57 @@
     --glass: 220 20% 12%;
     --glass-border: 220 15% 22%;
 
-    /* Newsprint palette — used directly by public pages via hardcoded hex */
-    --np-paper: #F9F9F7;
-    --np-ink: #111111;
-    --np-red: #CC0000;
-    --np-muted: #E5E5E0;
+    /* Newsprint palette — mapped to HSL values for opacity support */
+    --np-paper: 0 0% 7%;      /* Dark mode: Ink color for paper */
+    --np-ink: 60 20% 97%;     /* Dark mode: Paper color for ink */
+    --np-red: 0 100% 40%;
+    --np-muted: 0 0% 25%;     /* Dark mode: Darker divider */
+  }
+
+  .light-mode {
+    /* ── Light theme overrides for Dashboard / Profile ── */
+    --background: 0 0% 100%;
+    --foreground: 220 20% 6%;
+
+    --card: 0 0% 98%;
+    --card-foreground: 220 20% 6%;
+
+    --popover: 0 0% 98%;
+    --popover-foreground: 220 20% 6%;
+
+    --primary: 195 100% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 260 80% 50%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 220 15% 90%;
+    --muted-foreground: 215 15% 40%;
+
+    --accent: 260 80% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --border: 220 15% 85%;
+    --input: 220 15% 85%;
+    --ring: 195 100% 40%;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 220 20% 6%;
+    --sidebar-primary: 195 100% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 15% 90%;
+    --sidebar-accent-foreground: 220 20% 6%;
+    --sidebar-border: 220 15% 85%;
+    --sidebar-ring: 195 100% 40%;
+
+    --glass: 0 0% 100%;
+    --glass-border: 220 15% 85%;
+
+    /* Light mode Newsprint overrides */
+    --np-paper: 60 20% 97%;   /* Light mode: Paper color */
+    --np-ink: 0 0% 7%;        /* Light mode: Ink color */
+    --np-red: 0 100% 40%;
+    --np-muted: 60 10% 89%;
   }
 }
 
@@ -132,7 +178,7 @@
   }
 
   .hard-shadow-hover:hover {
-    box-shadow: 4px 4px 0px 0px #111111;
+    box-shadow: 4px 4px 0px 0px hsl(var(--np-ink));
     transform: translate(-2px, -2px);
   }
 
@@ -140,7 +186,7 @@
   .editorial-link {
     text-decoration: none;
     text-underline-offset: 4px;
-    text-decoration-color: #CC0000;
+    text-decoration-color: hsl(var(--np-red));
     text-decoration-thickness: 2px;
   }
 
@@ -148,11 +194,21 @@
     text-decoration: underline;
   }
 
-  /* Inverted section (ink-black background, public pages only) */
   .section-inverted {
-    background-color: #111111;
-    color: #F9F9F7;
+    --current-ink: var(--np-ink);
+    --np-ink: var(--np-paper);
+    --np-paper: var(--current-ink);
+    background-color: hsl(var(--np-paper));
+    color: hsl(var(--np-ink));
   }
+
+  /* ── Status Bar Custom Colors ── */
+  .status-bar-green { background-color: hsl(var(--np-paper)); }
+  .light-mode .status-bar-green { background-color: #ecfdf5; }
+  .status-bar-amber { background-color: hsl(var(--np-paper)); }
+  .light-mode .status-bar-amber { background-color: #fffbeb; }
+  .status-bar-red { background-color: hsl(var(--np-paper)); }
+  .light-mode .status-bar-red { background-color: #fef2f2; }
 
   /* ── Original Dashboard utilities (restored) ── */
   .glass {

@@ -2,8 +2,12 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
+import { parseStringPromise } from 'xml2js';
 import { requireAuth } from '../middleware/auth';
-import { store } from '../services/store';
+import { store, SYSTEM_FEEDS } from '../services/store';
+import { rssService } from '../services/rss';
+import { aiService } from '../services/ai';
+import { encryptText, maskKey } from '../services/crypto';
 
 const prisma = new PrismaClient();
 
@@ -33,15 +37,47 @@ export async function userRoutes(server: FastifyInstance) {
         });
     };
 
+    const ensureUserFeedsInitialized = async (userId: string) => {
+        const count = await prisma.userFeed.count({ where: { userId } });
+        if (count > 0) return;
+
+        await prisma.userFeed.createMany({
+            data: SYSTEM_FEEDS.map(feed => ({
+                userId,
+                url: feed.url,
+                displayName: feed.name,
+                category: feed.category,
+                isActive: true,
+            })),
+            skipDuplicates: true,
+        });
+    };
+
+    const ensureUserAiPreference = async (userId: string) => {
+        await prisma.userAiPreference.upsert({
+            where: { userId },
+            update: {},
+            create: {
+                userId,
+                byokEnabled: false,
+                timeoutSeconds: 30,
+                timeoutDisabled: false,
+            },
+        });
+    };
+
     // Get profile
     server.get('/profile', { preHandler: requireAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
         const userId = (request as any).userId;
         await updateLoginStreak(userId);
+        await ensureUserFeedsInitialized(userId);
+        await ensureUserAiPreference(userId);
 
         const user = await prisma.user.findUnique({
             where: { id: userId },
             select: {
-                id: true, email: true, name: true, phone: true, darkMode: true, aiProvider: true,
+                id: true, email: true, name: true, phone: true, darkMode: true,
+                aiProvider: true, summaryMode: true,
                 topics: true, createdAt: true, totalReads: true, totalReadTime: true,
                 loginDays: true, currentStreak: true, longestStreak: true,
             }
@@ -63,6 +99,7 @@ export async function userRoutes(server: FastifyInstance) {
             email: z.string().email().optional(),
             darkMode: z.boolean().optional(),
             aiProvider: z.enum(['groq', 'gemini', 'hybrid']).optional(),
+            summaryMode: z.enum(['concise', 'balanced', 'detailed']).optional(),
         });
 
         const data = schema.parse(request.body);
@@ -70,7 +107,7 @@ export async function userRoutes(server: FastifyInstance) {
         const user = await prisma.user.update({
             where: { id: userId },
             data,
-            select: { id: true, email: true, name: true, phone: true, darkMode: true, topics: true, aiProvider: true }
+            select: { id: true, email: true, name: true, phone: true, darkMode: true, topics: true, aiProvider: true, summaryMode: true }
         });
 
         let topics: string[] = [];
@@ -159,6 +196,420 @@ export async function userRoutes(server: FastifyInstance) {
             change: changePercent >= 0 ? `+${changePercent}%` : `${changePercent}%`,
             weeklyData,
         };
+    });
+
+    // Feed management
+    server.get('/feeds', { preHandler: requireAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const userId = (request as any).userId;
+        await ensureUserFeedsInitialized(userId);
+
+        const feeds = await prisma.userFeed.findMany({
+            where: { userId },
+            orderBy: [{ category: 'asc' }, { displayName: 'asc' }],
+        });
+        return { feeds };
+    });
+
+    server.post('/feeds/validate', { preHandler: requireAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const schema = z.object({ url: z.string().url() });
+        const { url } = schema.parse(request.body);
+
+        const previewItems = await rssService.fetchFeed(url);
+        if (!previewItems.length) {
+            return reply.status(400).send({ error: 'Could not parse RSS feed or feed has no items.' });
+        }
+
+        return {
+            valid: true,
+            feedName: previewItems[0]?.source || 'Custom Feed',
+            preview: previewItems.slice(0, 3).map(item => ({
+                title: item.title || 'Untitled',
+                link: item.link || '',
+                pubDate: item.pubDate || '',
+                source: item.source || '',
+            })),
+        };
+    });
+
+    server.post('/feeds', { preHandler: requireAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const userId = (request as any).userId;
+        const schema = z.object({
+            url: z.string().url(),
+            displayName: z.string().min(1).max(120).optional(),
+            category: z.string().max(60).optional().nullable(),
+        });
+        const { url, displayName, category } = schema.parse(request.body);
+
+        const previewItems = await rssService.fetchFeed(url);
+        if (!previewItems.length) {
+            return reply.status(400).send({ error: 'Could not parse RSS feed or feed has no items.' });
+        }
+
+        const feed = await prisma.userFeed.upsert({
+            where: { userId_url: { userId, url } },
+            update: {
+                displayName: displayName || previewItems[0]?.source || 'Custom Feed',
+                category: category || null,
+                isActive: true,
+            },
+            create: {
+                userId,
+                url,
+                displayName: displayName || previewItems[0]?.source || 'Custom Feed',
+                category: category || null,
+                isActive: true,
+            },
+        });
+
+        return { feed };
+    });
+
+    server.put('/feeds/:id', { preHandler: requireAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const userId = (request as any).userId;
+        const { id } = request.params as { id: string };
+        const schema = z.object({
+            url: z.string().url().optional(),
+            displayName: z.string().min(1).max(120).optional(),
+            category: z.string().max(60).nullable().optional(),
+            isActive: z.boolean().optional(),
+        });
+        const payload = schema.parse(request.body);
+
+        const feed = await prisma.userFeed.findFirst({ where: { id, userId } });
+        if (!feed) return reply.status(404).send({ error: 'Feed not found.' });
+
+        const updated = await prisma.userFeed.update({
+            where: { id },
+            data: payload,
+        });
+        return { feed: updated };
+    });
+
+    server.delete('/feeds/:id', { preHandler: requireAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const userId = (request as any).userId;
+        const { id } = request.params as { id: string };
+        const { dryRun } = (request.query as { dryRun?: string }) || {};
+
+        const feed = await prisma.userFeed.findFirst({ where: { id, userId } });
+        if (!feed) return reply.status(404).send({ error: 'Feed not found.' });
+
+        const hostname = (() => {
+            try { return new URL(feed.url).hostname.replace(/^www\./, ''); } catch { return ''; }
+        })();
+
+        const relatedSavedCount = hostname
+            ? await prisma.savedArticle.count({
+                where: { userId, link: { contains: hostname, mode: 'insensitive' } },
+            })
+            : 0;
+
+        if (dryRun === 'true') {
+            return { success: true, relatedSavedCount, dryRun: true };
+        }
+
+        await prisma.userFeed.delete({ where: { id } });
+        return { success: true, relatedSavedCount };
+    });
+
+    server.post('/feeds/import-opml', { preHandler: requireAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const userId = (request as any).userId;
+        const schema = z.object({ opml: z.string().min(1) });
+        const { opml } = schema.parse(request.body);
+
+        const parsed = await parseStringPromise(opml);
+        const outlines = parsed?.opml?.body?.[0]?.outline || [];
+        const flattened: Array<{ title: string; url: string; category: string | null }> = [];
+
+        const walk = (nodes: any[], inheritedCategory: string | null = null) => {
+            for (const node of nodes || []) {
+                const attrs = node.$ || {};
+                const category = attrs.text || attrs.title || inheritedCategory;
+                if (attrs.xmlUrl) {
+                    flattened.push({
+                        title: attrs.title || attrs.text || 'Imported Feed',
+                        url: attrs.xmlUrl,
+                        category: inheritedCategory,
+                    });
+                }
+                if (node.outline) {
+                    walk(node.outline, category || null);
+                }
+            }
+        };
+
+        walk(outlines);
+
+        if (!flattened.length) {
+            return reply.status(400).send({ error: 'No RSS feeds found in OPML file.' });
+        }
+
+        await prisma.userFeed.createMany({
+            data: flattened.map(feed => ({
+                userId,
+                url: feed.url,
+                displayName: feed.title,
+                category: feed.category,
+                isActive: true,
+            })),
+            skipDuplicates: true,
+        });
+
+        return { imported: flattened.length };
+    });
+
+    server.get('/feeds/export-opml', { preHandler: requireAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const userId = (request as any).userId;
+        const feeds = await prisma.userFeed.findMany({
+            where: { userId },
+            orderBy: [{ category: 'asc' }, { displayName: 'asc' }],
+        });
+
+        const grouped = feeds.reduce((acc: Record<string, typeof feeds>, feed) => {
+            const key = feed.category || 'Uncategorized';
+            acc[key] = acc[key] || [];
+            acc[key].push(feed);
+            return acc;
+        }, {});
+
+        const categoryBlocks = Object.entries(grouped).map(([category, items]) => {
+            const outlines = items
+                .map(feed => `      <outline text=\"${feed.displayName}\" title=\"${feed.displayName}\" type=\"rss\" xmlUrl=\"${feed.url}\" />`)
+                .join('\n');
+            return `    <outline text=\"${category}\" title=\"${category}\">\n${outlines}\n    </outline>`;
+        }).join('\n');
+
+        const xml = `<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<opml version=\"2.0\">\n  <head>\n    <title>NewsLabs Feeds Export</title>\n  </head>\n  <body>\n${categoryBlocks}\n  </body>\n</opml>`;
+
+        reply.header('Content-Type', 'application/xml');
+        reply.header('Content-Disposition', 'attachment; filename=\"newslabs-feeds.opml\"');
+        return reply.send(xml);
+    });
+
+    // BYOK preferences and credentials
+    server.get('/ai/byok', { preHandler: requireAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const userId = (request as any).userId;
+        await ensureUserAiPreference(userId);
+
+        const [preference, credentials] = await Promise.all([
+            prisma.userAiPreference.findUnique({ where: { userId } }),
+            prisma.userApiCredential.findMany({
+                where: { userId },
+                orderBy: [{ isActive: 'desc' }, { updatedAt: 'desc' }],
+                select: {
+                    id: true,
+                    label: true,
+                    provider: true,
+                    model: true,
+                    baseUrl: true,
+                    apiKeyMask: true,
+                    isVerified: true,
+                    isActive: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    lastValidatedAt: true,
+                },
+            }),
+        ]);
+
+        const activeCredential = credentials.find(c => c.isActive);
+        const timerUnlocked = Boolean(
+            preference?.byokEnabled &&
+            activeCredential?.isVerified
+        );
+
+        return {
+            preference: {
+                byokEnabled: preference?.byokEnabled ?? false,
+                timeoutSeconds: preference?.timeoutSeconds ?? 30,
+                timeoutDisabled: preference?.timeoutDisabled ?? false,
+                activeCredentialId: preference?.activeCredentialId ?? null,
+                timerUnlocked,
+            },
+            credentials,
+        };
+    });
+
+    server.put('/ai/byok/preference', { preHandler: requireAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const userId = (request as any).userId;
+        const schema = z.object({
+            byokEnabled: z.boolean().optional(),
+            timeoutSeconds: z.union([z.literal(10), z.literal(30), z.literal(60), z.literal(120)]).optional(),
+            timeoutDisabled: z.boolean().optional(),
+            activeCredentialId: z.string().optional().nullable(),
+        });
+        const payload = schema.parse(request.body);
+
+        await ensureUserAiPreference(userId);
+
+        if (payload.activeCredentialId) {
+            const credential = await prisma.userApiCredential.findFirst({
+                where: { id: payload.activeCredentialId, userId },
+            });
+            if (!credential) {
+                return reply.status(404).send({ error: 'Selected credential not found.' });
+            }
+            await prisma.userApiCredential.updateMany({
+                where: { userId },
+                data: { isActive: false },
+            });
+            await prisma.userApiCredential.update({
+                where: { id: credential.id },
+                data: { isActive: true },
+            });
+        }
+
+        const updated = await prisma.userAiPreference.update({
+            where: { userId },
+            data: {
+                byokEnabled: payload.byokEnabled,
+                activeCredentialId: payload.activeCredentialId === undefined ? undefined : payload.activeCredentialId,
+                timeoutSeconds: payload.timeoutSeconds,
+                timeoutDisabled: payload.timeoutDisabled,
+            },
+        });
+
+        const activeCredential = updated.activeCredentialId
+            ? await prisma.userApiCredential.findFirst({ where: { id: updated.activeCredentialId, userId } })
+            : null;
+
+        const timerUnlocked = Boolean(updated.byokEnabled && activeCredential?.isVerified);
+        if (!timerUnlocked && (payload.timeoutDisabled !== undefined || payload.timeoutSeconds !== undefined)) {
+            await prisma.userAiPreference.update({
+                where: { userId },
+                data: { timeoutDisabled: false, timeoutSeconds: 30 },
+            });
+            updated.timeoutDisabled = false;
+            updated.timeoutSeconds = 30;
+        }
+
+        return {
+            byokEnabled: updated.byokEnabled,
+            timeoutSeconds: updated.timeoutSeconds,
+            timeoutDisabled: updated.timeoutDisabled,
+            activeCredentialId: updated.activeCredentialId,
+            timerUnlocked,
+        };
+    });
+
+    server.post('/ai/byok/credentials/validate', { preHandler: requireAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const schema = z.object({
+            provider: z.string().min(2),
+            model: z.string().min(1),
+            apiKey: z.string().min(8),
+            baseUrl: z.string().url().optional().nullable(),
+        });
+        const payload = schema.parse(request.body);
+
+        const result = await aiService.validateCredential({
+            provider: payload.provider,
+            model: payload.model,
+            apiKey: payload.apiKey,
+            baseUrl: payload.baseUrl || undefined,
+        });
+
+        return result;
+    });
+
+    server.post('/ai/byok/credentials', { preHandler: requireAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const userId = (request as any).userId;
+        const schema = z.object({
+            label: z.string().min(1).max(80),
+            provider: z.string().min(2),
+            model: z.string().min(1),
+            apiKey: z.string().min(8),
+            baseUrl: z.string().url().optional().nullable(),
+            makeActive: z.boolean().optional(),
+        });
+        const payload = schema.parse(request.body);
+
+        const validation = await aiService.validateCredential({
+            provider: payload.provider,
+            model: payload.model,
+            apiKey: payload.apiKey,
+            baseUrl: payload.baseUrl || undefined,
+        });
+        if (!validation.ok) {
+            return reply.status(400).send({ error: validation.message });
+        }
+
+        if (payload.makeActive) {
+            await prisma.userApiCredential.updateMany({
+                where: { userId },
+                data: { isActive: false },
+            });
+        }
+
+        const created = await prisma.userApiCredential.create({
+            data: {
+                userId,
+                label: payload.label,
+                provider: payload.provider,
+                model: payload.model,
+                baseUrl: payload.baseUrl || null,
+                encryptedApiKey: encryptText(payload.apiKey),
+                apiKeyMask: maskKey(payload.apiKey),
+                isVerified: true,
+                lastValidatedAt: new Date(),
+                isActive: payload.makeActive || false,
+            },
+        });
+
+        if (payload.makeActive) {
+            await ensureUserAiPreference(userId);
+            await prisma.userAiPreference.update({
+                where: { userId },
+                data: { activeCredentialId: created.id },
+            });
+        }
+
+        return {
+            credential: {
+                id: created.id,
+                label: created.label,
+                provider: created.provider,
+                model: created.model,
+                baseUrl: created.baseUrl,
+                apiKeyMask: created.apiKeyMask,
+                isVerified: created.isVerified,
+                isActive: created.isActive,
+            },
+            message: validation.message,
+        };
+    });
+
+    server.put('/ai/byok/credentials/:id/activate', { preHandler: requireAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const userId = (request as any).userId;
+        const { id } = request.params as { id: string };
+
+        const credential = await prisma.userApiCredential.findFirst({ where: { id, userId } });
+        if (!credential) return reply.status(404).send({ error: 'Credential not found.' });
+
+        await prisma.userApiCredential.updateMany({ where: { userId }, data: { isActive: false } });
+        await prisma.userApiCredential.update({ where: { id }, data: { isActive: true } });
+        await ensureUserAiPreference(userId);
+        await prisma.userAiPreference.update({ where: { userId }, data: { activeCredentialId: id } });
+
+        return { success: true };
+    });
+
+    server.delete('/ai/byok/credentials/:id', { preHandler: requireAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const userId = (request as any).userId;
+        const { id } = request.params as { id: string };
+
+        const credential = await prisma.userApiCredential.findFirst({ where: { id, userId } });
+        if (!credential) return reply.status(404).send({ error: 'Credential not found.' });
+
+        await prisma.userApiCredential.delete({ where: { id } });
+        await ensureUserAiPreference(userId);
+        const preference = await prisma.userAiPreference.findUnique({ where: { userId } });
+        if (preference?.activeCredentialId === id) {
+            await prisma.userAiPreference.update({
+                where: { userId },
+                data: { activeCredentialId: null, timeoutDisabled: false, timeoutSeconds: 30 },
+            });
+        }
+
+        return { success: true };
     });
 
     // Like/unlike article

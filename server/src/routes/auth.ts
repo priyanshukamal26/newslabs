@@ -3,6 +3,7 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
+import { SYSTEM_FEEDS } from '../services/store';
 
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
@@ -19,6 +20,35 @@ const loginSchema = z.object({
 });
 
 export async function authRoutes(server: FastifyInstance) {
+    const ensureUserFeedsInitialized = async (userId: string) => {
+        const count = await prisma.userFeed.count({ where: { userId } });
+        if (count > 0) return;
+
+        await prisma.userFeed.createMany({
+            data: SYSTEM_FEEDS.map(feed => ({
+                userId,
+                url: feed.url,
+                displayName: feed.name,
+                category: feed.category,
+                isActive: true,
+            })),
+            skipDuplicates: true,
+        });
+    };
+
+    const ensureAiPreference = async (userId: string) => {
+        await prisma.userAiPreference.upsert({
+            where: { userId },
+            update: {},
+            create: {
+                userId,
+                byokEnabled: false,
+                timeoutSeconds: 30,
+                timeoutDisabled: false,
+            },
+        });
+    };
+
     server.post('/register', async (request, reply) => {
         try {
             const { email, password, name } = registerSchema.parse(request.body);
@@ -32,6 +62,8 @@ export async function authRoutes(server: FastifyInstance) {
             const user = await prisma.user.create({
                 data: { email, password: hashedPassword, name }
             });
+            await ensureUserFeedsInitialized(user.id);
+            await ensureAiPreference(user.id);
 
             const token = jwt.sign({ userId: user.id }, JWT_SECRET);
             let userTopics: string[] = [];
@@ -59,6 +91,9 @@ export async function authRoutes(server: FastifyInstance) {
             if (!valid) {
                 return reply.status(401).send({ error: 'Invalid credentials' });
             }
+
+            await ensureUserFeedsInitialized(user.id);
+            await ensureAiPreference(user.id);
 
             const token = jwt.sign({ userId: user.id }, JWT_SECRET);
             let userTopics: string[] = [];

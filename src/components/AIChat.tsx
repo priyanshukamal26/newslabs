@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { MessageSquare, X, Send, Sparkles, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { chatWithAI } from "../services/ai";
+import { getByokState } from "../lib/api";
+import { toast } from "sonner";
 
 interface Message {
     role: "user" | "assistant";
@@ -15,6 +17,8 @@ export function AIChat() {
     ]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [sessionTimeout, setSessionTimeout] = useState<0 | 10 | 30 | 60 | 120>(30);
+    const [timerUnlocked, setTimerUnlocked] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -24,6 +28,13 @@ export function AIChat() {
     useEffect(() => {
         scrollToBottom();
     }, [messages, isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        getByokState()
+            .then((state) => setTimerUnlocked(Boolean(state.preference.timerUnlocked)))
+            .catch(() => { });
+    }, [isOpen]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -35,8 +46,12 @@ export function AIChat() {
         setIsLoading(true);
 
         try {
-            const reply = await chatWithAI(userMessage);
-            setMessages(prev => [...prev, { role: "assistant", content: reply }]);
+            const response = await chatWithAI(userMessage, { sessionTimeoutSeconds: sessionTimeout });
+            setMessages(prev => [...prev, { role: "assistant", content: response.reply }]);
+            setTimerUnlocked(Boolean(response.timerUnlocked));
+            if (response.usedSystemFallback) {
+                toast("Your API key failed - used system key for this request. Check Profile settings.");
+            }
         } catch (error) {
             setMessages(prev => [...prev, { role: "assistant", content: "Sorry, I encountered an error. Please try again." }]);
         } finally {
@@ -88,6 +103,28 @@ export function AIChat() {
                             >
                                 <X className="h-4 w-4" />
                             </button>
+                        </div>
+
+                        <div className="px-4 py-2 border-b border-border bg-background/60">
+                            <div className="flex items-center justify-between gap-2">
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Session timer</p>
+                                <select
+                                    value={sessionTimeout}
+                                    onChange={(e) => setSessionTimeout(Number(e.target.value) as 0 | 10 | 30 | 60 | 120)}
+                                    className="text-xs rounded-md bg-muted/40 border border-border px-2 py-1"
+                                    disabled={!timerUnlocked}
+                                    title={timerUnlocked ? "Set per-session timer" : "Unlock by verifying and activating a BYOK credential in Profile"}
+                                >
+                                    <option value={10}>10s</option>
+                                    <option value={30}>30s</option>
+                                    <option value={60}>60s</option>
+                                    <option value={120}>120s</option>
+                                    <option value={0}>No limit</option>
+                                </select>
+                            </div>
+                            {!timerUnlocked && (
+                                <p className="text-[10px] text-muted-foreground mt-1">Timer unlocks after BYOK is enabled and an active key is verified.</p>
+                            )}
                         </div>
 
                         {/* Messages */}

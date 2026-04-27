@@ -8,7 +8,7 @@ function statusColor(s: string) {
         checking: "text-neutral-400",
         operational: "text-emerald-600",
         degraded: "text-amber-500",
-        down: "text-[#CC0000]",
+        down: "text-editorial-red",
     }[s as string] || "text-neutral-400";
 }
 
@@ -17,7 +17,7 @@ function statusDot(s: string) {
         checking: "bg-neutral-300 animate-pulse",
         operational: "bg-emerald-500",
         degraded: "bg-amber-400 animate-pulse",
-        down: "bg-[#CC0000] animate-pulse",
+        down: "bg-editorial-red animate-pulse",
     }[s as string] || "bg-neutral-300";
 }
 
@@ -87,7 +87,7 @@ export function StatusBar() {
         }
     }, [isDetailsOpen, setDetailsOpen]);
 
-    const summaryColor = isGreen ? "text-emerald-600" : isDegraded ? "text-amber-500" : isChecking ? "text-neutral-400" : "text-[#CC0000]";
+    const summaryColor = isGreen ? "text-emerald-600" : isDegraded ? "text-amber-500" : isChecking ? "text-neutral-400" : "text-editorial-red";
     const summaryText = isGreen
         ? "All systems operational"
         : isDegraded
@@ -109,12 +109,12 @@ export function StatusBar() {
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: -80, opacity: 0 }}
                         transition={{ type: "spring", stiffness: 320, damping: 32 }}
-                        className="fixed top-14 inset-x-0 z-30 shadow-md border-b-2 border-[#111111] bg-[#F9F9F7]"
+                        className="fixed top-14 inset-x-0 z-30 shadow-md border-b-2 border-ink bg-paper"
                     >
                         <div className="max-w-screen-xl mx-auto px-4 py-3 sm:py-4 flex items-start gap-4">
                             <Info className={`w-5 h-5 shrink-0 ${isGreen ? "text-emerald-600" : "text-amber-500"}`} />
                             <div className="flex-1 min-w-0">
-                                <h4 className="text-sm font-bold text-[#111111]" style={{ fontFamily: "'Playfair Display', serif" }}>
+                                <h4 className="text-sm font-bold text-ink" style={{ fontFamily: "'Playfair Display', serif" }}>
                                     System Diagnostics {isChecking ? "Running…" : isGreen ? "Complete" : "Ongoing"}
                                 </h4>
                                 <p className="text-sm text-neutral-600 mt-1 mb-2 leading-relaxed" style={{ fontFamily: "'Lora', serif" }}>
@@ -127,7 +127,7 @@ export function StatusBar() {
                             </div>
                             <button
                                 onClick={() => setDismissedTop(true)}
-                                className="w-8 h-8 flex items-center justify-center border border-[#E5E5E0] text-neutral-400 hover:text-[#111111] hover:bg-neutral-100 transition-colors shrink-0"
+                                className="w-8 h-8 flex items-center justify-center border border-divider-grey text-neutral-400 hover:text-paper hover:bg-ink transition-colors shrink-0"
                                 aria-label="Dismiss banner"
                                 style={{ borderRadius: 0 }}
                             >
@@ -158,7 +158,7 @@ export function StatusBar() {
                                     animate={{ height: "auto", opacity: 1 }}
                                     exit={{ height: 0, opacity: 0 }}
                                     transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                                    className="overflow-hidden border-t-2 border-[#111111] bg-[#F9F9F7]"
+                                    className="overflow-hidden border-t-2 border-ink bg-paper"
                                     style={{
                                         backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 4 4'%3E%3Cpath fill='%23111111' fill-opacity='0.04' d='M1 3h1v1H1V3zm2-2h1v1H3V1z'%3E%3C/path%3E%3C/svg%3E")`,
                                     }}
@@ -171,17 +171,17 @@ export function StatusBar() {
                                     >
                                         {services.map((svc) => (
                                             <motion.div variants={listItem} key={svc.id} className="flex items-start gap-4 px-0 sm:px-8 first:pl-0 last:pr-0">
-                                                <div className={`w-10 h-10 border-2 flex items-center justify-center shrink-0 border-[#111111] ${svc.status === "operational" ? "bg-emerald-50" : svc.status === "degraded" ? "bg-amber-50" : svc.status === "down" ? "bg-red-50" : "bg-white"}`}>
+                                                <div className={`w-10 h-10 border-2 flex items-center justify-center shrink-0 border-ink ${svc.status === "operational" ? "status-bar-green" : svc.status === "degraded" ? "status-bar-amber" : svc.status === "down" ? "status-bar-red" : "bg-paper"}`}>
                                                     {svc.status === "checking" ? (
                                                         <Loader2 className="h-5 w-5 text-neutral-400 animate-spin" />
                                                     ) : svc.status === "operational" ? (
                                                         <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                                                     ) : (
-                                                        <XCircle className="h-5 w-5 text-[#CC0000]" />
+                                                        <XCircle className="h-5 w-5 text-editorial-red" />
                                                     )}
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#111111] flex flex-wrap items-center gap-2 mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>
+                                                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-ink flex flex-wrap items-center gap-2 mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>
                                                         {svc.label}
                                                         {svc.latency !== null && (
                                                             <span className="font-normal text-neutral-400 normal-case tracking-normal" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{formatLatency(svc.latency)}</span>
@@ -202,7 +202,7 @@ export function StatusBar() {
                         </AnimatePresence>
 
                         {/* Main status strip */}
-                        <div className={`border-t-2 border-[#111111] transition-colors duration-500 ${isGreen ? "bg-emerald-50" : !isChecking && !isGreen ? "bg-amber-50" : "bg-[#F9F9F7]"}`}>
+                        <div className={`border-t-2 border-ink transition-colors duration-500 ${isGreen ? "status-bar-green" : !isChecking && !isGreen ? "status-bar-amber" : "bg-paper"}`}>
                             <div className="max-w-screen-xl mx-auto px-4 h-12 flex items-center justify-between gap-4">
                                 <div className="flex items-center gap-4 min-w-0">
                                     <div className="flex items-center gap-2">
@@ -240,9 +240,9 @@ export function StatusBar() {
                                 <div className="flex items-center gap-0 shrink-0 h-full">
                                     <button
                                         onClick={() => setDetailsOpen(!isDetailsOpen)}
-                                        className={`h-full px-5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.15em] transition-colors border-l border-[#E5E5E0] ${isDetailsOpen
-                                            ? "bg-[#111111] text-white hover:bg-neutral-800"
-                                            : "bg-transparent text-neutral-500 hover:text-[#111111] hover:bg-neutral-100"
+                                        className={`h-full px-5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.15em] transition-colors border-l border-divider-grey ${isDetailsOpen
+                                            ? "bg-paper text-ink hover:bg-ink hover:text-paper"
+                                            : "bg-transparent text-neutral-500 hover:text-ink hover:bg-ink/10"
                                             }`}
                                         style={{ fontFamily: "'Inter', sans-serif" }}
                                     >

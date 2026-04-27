@@ -65,19 +65,19 @@ const docsEthics = [
 /* ── Page ──────────────────────────────────────────────────────────── */
 export default function FeaturesPage() {
   return (
-    <div className="min-h-screen bg-[#F9F9F7]">
+    <div className="min-h-screen bg-paper">
 
       {/* ── Page masthead ── */}
-      <div className="border-b-2 border-[#111111]">
+      <div className="border-b-2 border-ink">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-8 py-14 lg:py-20">
           <p
-            className="text-[10px] uppercase tracking-[0.25em] text-[#CC0000] mb-3"
+            className="text-[10px] uppercase tracking-[0.25em] text-editorial-red mb-3"
             style={{ fontFamily: "'JetBrains Mono', monospace" }}
           >
             Full Coverage
           </p>
           <h1
-            className="text-5xl md:text-7xl font-black text-[#111111] leading-[0.92] tracking-tight mb-6"
+            className="text-5xl md:text-7xl font-black text-ink leading-[0.92] tracking-tight mb-6"
             style={{ fontFamily: "'Playfair Display', serif" }}
           >
             Powerful <em style={{ fontStyle: "italic" }}>Features</em>
@@ -92,10 +92,10 @@ export default function FeaturesPage() {
       </div>
 
       {/* ── Feature grid ── */}
-      <section className="border-b-2 border-[#111111]" aria-label="Core features">
+      <section className="border-b-2 border-ink" aria-label="Core features">
         <div className="max-w-screen-xl mx-auto">
           <div
-            className="border-b border-[#111111] px-4 sm:px-8 py-4"
+            className="border-b border-ink px-4 sm:px-8 py-4"
           >
             <p
               className="text-[10px] uppercase tracking-[0.25em] text-neutral-500"
@@ -116,7 +116,7 @@ export default function FeaturesPage() {
                 variants={fadeUp}
                 custom={i}
                 className={`
-                  p-6 sm:p-8 border-b border-[#111111] group cursor-default hard-shadow-hover
+                  p-6 sm:p-8 border-b border-ink group cursor-default hard-shadow-hover
                   ${i % 3 !== 2 ? "lg:border-r" : ""}
                   ${i % 2 === 0 ? "sm:border-r lg:border-r-0" : "sm:border-r-0"}
                   ${i % 2 === 0 && i % 3 !== 2 ? "sm:border-r lg:border-r" : ""}
@@ -124,7 +124,7 @@ export default function FeaturesPage() {
               >
                 <div className="flex items-center gap-3 mb-4">
                   <div
-                    className="w-12 h-12 border border-[#111111] flex items-center justify-center bg-white text-[#111111] group-hover:bg-[#111111] group-hover:text-[#F9F9F7] transition-all duration-150"
+                    className="w-12 h-12 border border-ink flex items-center justify-center bg-paper text-ink group-hover:bg-ink group-hover:text-paper transition-all duration-150"
                   >
                     <f.icon className="h-5 w-5" strokeWidth={1.5} />
                   </div>
@@ -136,7 +136,7 @@ export default function FeaturesPage() {
                   </span>
                 </div>
                 <h3
-                  className="font-bold text-lg sm:text-xl text-[#111111] mb-2"
+                  className="font-bold text-lg sm:text-xl text-ink mb-2"
                   style={{ fontFamily: "'Playfair Display', serif" }}
                 >
                   {f.title}
@@ -154,7 +154,7 @@ export default function FeaturesPage() {
       </section>
 
       {/* ── How It Works — inverted section ── */}
-      <section className="section-inverted border-b-2 border-[#111111] newsprint-texture" aria-label="How it works">
+      <section className="section-inverted border-b-2 border-ink newsprint-texture" aria-label="How it works">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-8 py-16 lg:py-20">
           <div className="border-b border-neutral-700 pb-6 mb-12">
             <p
@@ -164,7 +164,7 @@ export default function FeaturesPage() {
               Section B — Pipeline
             </p>
             <h2
-              className="text-4xl md:text-5xl font-black text-[#F9F9F7] leading-tight"
+              className="text-4xl md:text-5xl font-black text-paper leading-tight"
               style={{ fontFamily: "'Playfair Display', serif" }}
             >
               How It <em style={{ fontStyle: "italic" }}>Works</em>
@@ -183,7 +183,7 @@ export default function FeaturesPage() {
               <div className="mt-8">
                 <Link
                   to="/auth"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-[#CC0000] text-white text-xs font-bold uppercase tracking-[0.18em] border border-[#CC0000] hover:bg-white hover:text-[#111111] hover:border-white transition-all duration-150"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-editorial-red text-white text-xs font-bold uppercase tracking-[0.18em] border border-editorial-red hover:bg-paper hover:text-ink hover:border-paper transition-all duration-150"
                   style={{ fontFamily: "'Inter', sans-serif" }}
                 >
                   Get Started <ArrowRight className="h-3.5 w-3.5" />
@@ -204,7 +204,7 @@ export default function FeaturesPage() {
                 >
                   {/* Step number */}
                   <div
-                    className="text-3xl font-black text-[#CC0000] leading-none shrink-0 w-12 text-right"
+                    className="text-3xl font-black text-editorial-red leading-none shrink-0 w-12 text-right"
                     style={{ fontFamily: "'JetBrains Mono', monospace" }}
                   >
                     {step.num}
@@ -214,7 +214,7 @@ export default function FeaturesPage() {
                     <div className="flex items-center gap-3 mb-2">
                       <step.icon className="h-5 w-5 text-neutral-400" strokeWidth={1.5} />
                       <h3
-                        className="text-lg font-bold text-[#F9F9F7]"
+                        className="text-lg font-bold text-paper"
                         style={{ fontFamily: "'Playfair Display', serif" }}
                       >
                         {step.title}
@@ -235,9 +235,9 @@ export default function FeaturesPage() {
       </section>
 
       {/* ── Docs & Ethics ── */}
-      <section className="border-b-2 border-[#111111]" aria-label="Docs and ethics">
+      <section className="border-b-2 border-ink" aria-label="Docs and ethics">
         <div className="max-w-screen-xl mx-auto">
-          <div className="border-b border-[#111111] px-4 sm:px-8 py-4">
+          <div className="border-b border-ink px-4 sm:px-8 py-4">
             <p
               className="text-[10px] uppercase tracking-[0.25em] text-neutral-500"
               style={{ fontFamily: "'JetBrains Mono', monospace" }}
@@ -254,21 +254,21 @@ export default function FeaturesPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className={`p-8 border-b border-[#111111] ${i % 2 === 0 ? "md:border-r" : ""}`}
+                className={`p-8 border-b border-ink ${i % 2 === 0 ? "md:border-r" : ""}`}
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 border border-[#CC0000] text-[#CC0000] flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 border border-editorial-red text-editorial-red flex items-center justify-center shrink-0">
                     <s.icon className="h-4 w-4" strokeWidth={1.5} />
                   </div>
                   <h3
-                    className="text-xl font-bold text-[#111111]"
+                    className="text-xl font-bold text-ink"
                     style={{ fontFamily: "'Playfair Display', serif" }}
                   >
                     {s.title}
                   </h3>
                 </div>
                 {/* Red left-border blockquote style */}
-                <div className="border-l-2 border-[#CC0000] pl-5">
+                <div className="border-l-2 border-editorial-red pl-5">
                   <p
                     className="text-base text-neutral-600 leading-relaxed text-justify"
                     style={{ fontFamily: "'Lora', serif" }}

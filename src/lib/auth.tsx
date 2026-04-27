@@ -62,6 +62,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
     };
 
+    // Sync theme with document element
+    useEffect(() => {
+        if (user && user.darkMode === false) {
+            document.documentElement.classList.add('light-mode');
+        } else {
+            document.documentElement.classList.remove('light-mode');
+        }
+    }, [user?.darkMode]);
+
     return (
         <AuthContext.Provider value={{ user, token, login, updateUser, logout, isAuthenticated: !!token }}>
             {children}

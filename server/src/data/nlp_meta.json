@@ -1,0 +1,29 @@
+{
+  "trainedAt": "2026-04-21T20:38:33.595502+00:00",
+  "categories": [
+    "Business & Finance",
+    "Climate & Environment",
+    "Entertainment",
+    "General",
+    "Health",
+    "Science & Space",
+    "Sports",
+    "Technology",
+    "World Affairs"
+  ],
+  "accuracy": 0.7882,
+  "naiveBayesAccuracy": 0.7728,
+  "labelCounts": {
+    "World Affairs": 13204,
+    "Business & Finance": 9753,
+    "Sports": 8955,
+    "Technology": 4211,
+    "Entertainment": 4170,
+    "General": 3950,
+    "Climate & Environment": 1710,
+    "Health": 1487,
+    "Science & Space": 881
+  },
+  "modelType": "tfidf_logreg",
+  "version": 1
+}

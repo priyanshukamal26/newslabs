@@ -13,15 +13,15 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast:
-            "group toast group-[.toaster]:bg-white group-[.toaster]:text-[#111111] group-[.toaster]:border-2 group-[.toaster]:border-[#111111] group-[.toaster]:shadow-none rounded-none p-5",
-          description: "group-[.toast]:text-neutral-600 font-medium text-sm !font-body mt-1.5",
-          title: "group-[.toast]:text-[#111111] font-bold text-sm tracking-wide !font-serif",
+            "group toast group-[.toaster]:bg-paper group-[.toaster]:text-ink group-[.toaster]:border-2 group-[.toaster]:border-ink group-[.toaster]:shadow-none rounded-none p-5",
+          description: "group-[.toast]:text-ink/80 font-medium text-sm !font-body mt-1.5",
+          title: "group-[.toast]:text-ink font-bold text-sm tracking-wide !font-serif",
           actionButton:
-            "group-[.toast]:bg-[#111111] group-[.toast]:text-[#F9F9F7] group-[.toast]:border-0 font-bold uppercase tracking-[0.15em] text-[10px] !font-sans rounded-none px-4 py-2 hover:bg-neutral-800 transition-colors",
+            "group-[.toast]:bg-ink group-[.toast]:text-paper group-[.toast]:border-0 font-bold uppercase tracking-[0.15em] text-[10px] !font-sans rounded-none px-4 py-2 hover:bg-neutral-800 transition-colors",
           cancelButton:
-            "group-[.toast]:bg-transparent group-[.toast]:border group-[.toast]:border-[#111111] group-[.toast]:text-[#111111] font-bold uppercase tracking-[0.15em] text-[10px] !font-sans rounded-none px-4 py-2 hover:bg-neutral-100 transition-colors",
-          error: "group-[.toaster]:border-[#CC0000] group-[.toast]:text-[#CC0000]",
-          icon: "group-data-[type=error]:text-[#CC0000] group-data-[type=success]:text-emerald-600 group-data-[type=warning]:text-amber-500 group-data-[type=info]:text-[#111111]",
+            "group-[.toast]:bg-transparent group-[.toast]:border group-[.toast]:border-ink group-[.toast]:text-ink font-bold uppercase tracking-[0.15em] text-[10px] !font-sans rounded-none px-4 py-2 hover:bg-ink/10 transition-colors",
+          error: "group-[.toaster]:border-editorial-red group-[.toast]:text-editorial-red",
+          icon: "group-data-[type=error]:text-editorial-red group-data-[type=success]:text-emerald-600 group-data-[type=warning]:text-amber-500 group-data-[type=info]:text-ink",
         },
       }}
       {...props}

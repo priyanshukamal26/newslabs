@@ -2,6 +2,7 @@ import 'dotenv/config';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { appRoutes } from './routes';
+import { initScheduler } from './services/scheduler.service';
 
 const server = Fastify({
     logger: true
@@ -47,6 +48,7 @@ const start = async () => {
         const port = parseInt(process.env.PORT || '3000', 10);
         await server.listen({ port, host: '0.0.0.0' });
         console.log(`Server listening on http://localhost:${port}`);
+        initScheduler();
     } catch (err) {
         server.log.error(err);
         process.exit(1);

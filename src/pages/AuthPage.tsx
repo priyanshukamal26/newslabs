@@ -39,13 +39,13 @@ export default function AuthPage() {
 
   return (
     <div
-      className="min-h-screen bg-[#F9F9F7] flex"
+      className="min-h-screen bg-paper flex"
       style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 4 4'%3E%3Cpath fill='%23111111' fill-opacity='0.04' d='M1 3h1v1H1V3zm2-2h1v1H3V1z'%3E%3C/path%3E%3C/svg%3E")`,
       }}
     >
       {/* Left branding column (hidden on mobile) */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 border-r-2 border-[#111111] relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 border-r-2 border-ink relative overflow-hidden">
         {/* Cool modern background */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#111111] via-[#1a1a1a] to-[#2a2a2a] z-0" />
         <motion.div
@@ -71,7 +71,7 @@ export default function AuthPage() {
         >
           <img src="/logo.png" alt="NewsLabs Logo" className="h-7 w-auto object-contain invert" />
           <span
-            className="font-black text-xl text-[#F9F9F7]"
+            className="font-black text-xl text-paper"
             style={{ fontFamily: "'Playfair Display', serif" }}
           >
             NewsLabs
@@ -83,10 +83,10 @@ export default function AuthPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="inline-flex items-center gap-2 px-3 py-1 bg-[#F9F9F7]/10 backdrop-blur-sm border border-[#F9F9F7]/20 rounded-full mb-8"
+            className="inline-flex items-center gap-2 px-3 py-1 bg-paper/10 backdrop-blur-sm border border-paper/20 rounded-full mb-8"
           >
-            <Sparkles className="h-3 w-3 text-[#F9F9F7] animate-pulse" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#F9F9F7]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+            <Sparkles className="h-3 w-3 text-paper animate-pulse" />
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-paper" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
               Intelligent Aggregation
             </span>
           </motion.div>
@@ -95,12 +95,12 @@ export default function AuthPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="text-5xl lg:text-6xl font-black text-[#F9F9F7] leading-[1.05] mb-6"
+            className="text-5xl lg:text-6xl font-black text-paper leading-[1.05] mb-6"
             style={{ fontFamily: "'Playfair Display', serif" }}
           >
             Read Less.
             <br />
-            <em className="text-[#CC0000]" style={{ fontStyle: "italic" }}>
+            <em className="text-editorial-red" style={{ fontStyle: "italic" }}>
               Understand More.
             </em>
           </motion.h2>
@@ -130,7 +130,7 @@ export default function AuthPage() {
         {/* Mobile back link */}
         <Link
           to="/"
-          className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-neutral-500 hover:text-[#111111] transition-colors mb-10 lg:hidden"
+          className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-neutral-500 hover:text-ink transition-colors mb-10 lg:hidden"
           style={{ fontFamily: "'Inter', sans-serif" }}
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Back to Home
@@ -139,7 +139,7 @@ export default function AuthPage() {
         {/* Desktop back link */}
         <Link
           to="/"
-          className="hidden lg:inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-neutral-500 hover:text-[#111111] transition-colors mb-10"
+          className="hidden lg:inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-neutral-500 hover:text-ink transition-colors mb-10"
           style={{ fontFamily: "'Inter', sans-serif" }}
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Back to Home
@@ -152,7 +152,7 @@ export default function AuthPage() {
           className="w-full max-w-md"
         >
           {/* Masthead */}
-          <div className="mb-8 pb-6 border-b border-[#111111] overflow-hidden">
+          <div className="mb-8 pb-6 border-b border-ink overflow-hidden">
             <AnimatePresence mode="wait">
               <motion.div
                 key={isLogin ? "login-header" : "signup-header"}
@@ -162,13 +162,13 @@ export default function AuthPage() {
                 transition={{ duration: 0.3 }}
               >
                 <p
-                  className="text-[10px] uppercase tracking-[0.25em] text-[#CC0000] mb-2"
+                  className="text-[10px] uppercase tracking-[0.25em] text-editorial-red mb-2"
                   style={{ fontFamily: "'JetBrains Mono', monospace" }}
                 >
                   {isLogin ? "Returning Reader" : "New Subscriber"}
                 </p>
                 <h1
-                  className="text-4xl font-black text-[#111111] leading-tight"
+                  className="text-4xl font-black text-ink leading-tight"
                   style={{ fontFamily: "'Playfair Display', serif" }}
                 >
                   {isLogin ? "Your Briefing Awaits." : "Begin Your Briefing."}
@@ -186,7 +186,7 @@ export default function AuthPage() {
           </div>
 
           {/* Tab switcher — underline style */}
-          <div className="flex mb-8 border-b border-[#E5E5E0]">
+          <div className="flex mb-8 border-b border-divider-grey">
             {[
               { label: "Sign In", value: true },
               { label: "Sign Up", value: false },
@@ -196,8 +196,8 @@ export default function AuthPage() {
                 onClick={() => { setIsLogin(tab.value); setError(null); }}
                 className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-[0.2em] transition-all duration-150 border-b-2 -mb-[1px]
                   ${isLogin === tab.value
-                    ? "border-[#111111] text-[#111111]"
-                    : "border-transparent text-neutral-400 hover:text-[#111111]"
+                    ? "border-ink text-ink"
+                    : "border-transparent text-neutral-400 hover:text-ink"
                   }`}
                 style={{ fontFamily: "'Inter', sans-serif", borderRadius: 0 }}
               >
@@ -263,12 +263,12 @@ export default function AuthPage() {
                   initial={{ opacity: 0, y: -6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
-                  className="flex items-start gap-3 border-l-2 border-[#CC0000] pl-3 py-1"
+                  className="flex items-start gap-3 border-l-2 border-editorial-red pl-3 py-1"
                   role="alert"
                 >
-                  <AlertCircle className="h-4 w-4 text-[#CC0000] shrink-0 mt-0.5" />
+                  <AlertCircle className="h-4 w-4 text-editorial-red shrink-0 mt-0.5" />
                   <p
-                    className="text-sm text-[#CC0000] leading-snug"
+                    className="text-sm text-editorial-red leading-snug"
                     style={{ fontFamily: "'Lora', serif" }}
                   >
                     {error}
@@ -281,7 +281,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-[#111111] text-[#F9F9F7] text-xs font-bold uppercase tracking-[0.2em] border border-[#111111] hover:bg-white hover:text-[#111111] transition-all duration-150 flex items-center justify-center gap-2 min-h-[48px] mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full py-3.5 bg-ink text-paper text-xs font-bold uppercase tracking-[0.2em] border border-ink hover:bg-paper hover:text-ink transition-all duration-150 flex items-center justify-center gap-2 min-h-[48px] mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
               style={{ fontFamily: "'Inter', sans-serif", borderRadius: 0 }}
             >
               {loading
@@ -328,7 +328,7 @@ function FieldWithIcon({ id, name, label, type, placeholder, value, onChange, ic
         {label}
       </label>
       <div className="relative group">
-        <span className="absolute left-0 bottom-0 top-0 flex items-center pb-2 text-neutral-400 group-focus-within:text-[#111111] transition-colors duration-150">
+        <span className="absolute left-0 bottom-0 top-0 flex items-center pb-2 text-neutral-400 group-focus-within:text-ink transition-colors duration-150">
           {icon}
         </span>
         <input
@@ -339,7 +339,7 @@ function FieldWithIcon({ id, name, label, type, placeholder, value, onChange, ic
           value={value}
           onChange={onChange}
           required={required}
-          className="w-full pl-7 pr-2 pb-2 pt-0 bg-transparent border-b-2 border-[#E5E5E0] focus:border-[#111111] outline-none text-sm text-[#111111] placeholder:text-neutral-300 font-medium transition-colors duration-150"
+          className="w-full pl-7 pr-2 pb-2 pt-0 bg-transparent border-b-2 border-divider-grey focus:border-ink outline-none text-sm text-ink placeholder:text-neutral-300 font-medium transition-colors duration-150"
           style={{ fontFamily: "'JetBrains Mono', monospace", borderRadius: 0 }}
         />
       </div>
