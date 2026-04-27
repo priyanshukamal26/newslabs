@@ -138,15 +138,20 @@ model LikedArticle {
 }
 
 model ReadHistory {
-  id        String   @id @default(uuid())
-  userId    String
-  articleId String
-  readAt    DateTime @default(now())
-  timeSpent Int      @default(0)
-  
+  id               String   @id @default(uuid())
+  userId           String
+  articleId        String
+  readAt           DateTime @default(now())
+  timeSpent        Int      @default(0)  // seconds actually spent with article open
+  estimatedReadSecs Int     @default(0)  // est. from summary word count (~200wpm)
+  topic            String   @default("")
+  source           String   @default("")
+  sentiment        String   @default("")
+
   user      User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, articleId])
+  @@index([userId, readAt(sort: Desc)])
 }
 
 model Notification {

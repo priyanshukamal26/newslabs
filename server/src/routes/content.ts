@@ -67,13 +67,14 @@ function categorizeArticle(
     title: string,
     contentStr?: string,
     sourceName?: string
-): { primary: string; topics: string[]; confidence: number; secondaryTags: string[] } {
+): { primary: string; topics: string[]; confidence: number; secondaryTags: string[]; classificationSignals: string[] } {
     const result = nlpService.classifyArticle(title, contentStr || '', sourceName);
     return {
         primary: result.primary,
         topics: [result.primary, ...result.secondaryTags],
         confidence: result.confidence,
         secondaryTags: result.secondaryTags,
+        classificationSignals: result.classificationSignals || [],
     };
 }
 
@@ -148,7 +149,14 @@ export async function contentRoutes(server: FastifyInstance) {
                         const classification = categorizeArticle(text, body, feedTitle);
                         const sentimentResult = nlpService.analyzeSentiment(`${text} ${body}`);
                         const opinionResult = nlpService.detectOpinionVsFact(text, body);
-                        const reliabilityResult = nlpService.scoreReliability(text, body, feedTitle || item.source || '');
+                        const reliabilityResult = nlpService.scoreReliability(text, body, feedTitle || item.source || '', item.pubDate);
+
+                        let biasIndicator: 'Neutral' | 'Slightly Opinionated' | 'Strongly Opinionated' = 'Neutral';
+                        if (opinionResult.type === 'Opinion') {
+                            biasIndicator = opinionResult.confidence > 0.75 ? 'Strongly Opinionated' : 'Slightly Opinionated';
+                        } else if (sentimentResult.score < -0.5 || sentimentResult.score > 0.5) {
+                            biasIndicator = 'Slightly Opinionated';
+                        }
 
                         store.addArticle({
                             ...item,
@@ -178,6 +186,8 @@ export async function contentRoutes(server: FastifyInstance) {
                             classificationConfidence: classification.confidence,
                             secondaryTags: classification.secondaryTags,
                             primaryCategory: classification.primary,
+                            classificationSignals: classification.classificationSignals,
+                            biasIndicator,
                         } as Article);
                         newArticleIds.push(id);
                     } else {

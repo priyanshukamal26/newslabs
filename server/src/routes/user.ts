@@ -679,12 +679,27 @@ export async function userRoutes(server: FastifyInstance) {
         }
     });
 
-    // Record read (with time tracking)
+    // Record read (with real time tracking)
     server.post('/read/:articleId', { preHandler: requireAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
         const userId = (request as any).userId;
         const { articleId } = request.params as { articleId: string };
-        const { timeSpent } = (request.body as any) || {};
-        const readMinutes = parseInt(timeSpent) || 3; // default 3 min per read
+        const body = (request.body as any) || {};
+
+        // timeSpent is passed in SECONDS from the frontend (real open-time measurement)
+        const rawSecs = parseInt(body.timeSpent) || 0;
+        const timeSpentSecs = Math.min(rawSecs, 3600); // cap at 1 hour
+
+        // estimatedReadSecs: derived from summary word count at 200wpm reading speed
+        // Summary is passed from frontend or pulled from store
+        const article = store.getArticleById(articleId);
+        const summaryText: string = body.summary || article?.summary || '';
+        const wordCount = summaryText.trim().split(/\s+/).filter(Boolean).length;
+        const estimatedReadSecs = wordCount > 10 ? Math.round((wordCount / 200) * 60) : 60; // 200wpm → seconds
+
+        // Denormalized fields for analytics
+        const topic = body.topic || article?.topic || '';
+        const source = body.source || article?.source || '';
+        const sentiment = body.sentiment || article?.sentiment || '';
 
         const existing = await prisma.readHistory.findFirst({
             where: { userId, articleId }
@@ -692,24 +707,238 @@ export async function userRoutes(server: FastifyInstance) {
 
         if (!existing) {
             await prisma.readHistory.create({
-                data: { userId, articleId, timeSpent: readMinutes },
+                data: {
+                    userId,
+                    articleId,
+                    timeSpent: timeSpentSecs,
+                    estimatedReadSecs,
+                    topic,
+                    source,
+                    sentiment,
+                },
             });
 
-            // Increment user's total reads & time
+            // Increment user's total reads & time (store time in minutes for compat)
             await prisma.user.update({
                 where: { id: userId },
                 data: {
                     totalReads: { increment: 1 },
-                    totalReadTime: { increment: readMinutes },
+                    totalReadTime: { increment: Math.max(1, Math.round(timeSpentSecs / 60)) },
                 },
+            });
+        } else if (timeSpentSecs > existing.timeSpent) {
+            // Update if user spent more time (re-opened the article)
+            await prisma.readHistory.update({
+                where: { id: existing.id },
+                data: { timeSpent: timeSpentSecs },
             });
         }
 
         return { read: true };
     });
 
+    // ── Reading Lab Analytics ───────────────────────────────────────────────────
+    server.get('/read-lab', { preHandler: requireAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const userId = (request as any).userId;
+        const MIN_READS_FOR_ANALYTICS = 5;
+
+        const [user, allReads, allLiked, allSaved] = await Promise.all([
+            prisma.user.findUnique({ where: { id: userId } }),
+            prisma.readHistory.findMany({
+                where: { userId },
+                orderBy: { readAt: 'desc' },
+                take: 200,
+            }),
+            prisma.likedArticle.findMany({
+                where: { userId },
+                orderBy: { likedAt: 'desc' },
+                take: 100,
+            }),
+            prisma.savedArticle.findMany({
+                where: { userId },
+                orderBy: { savedAt: 'desc' },
+                take: 50,
+            }),
+        ]);
+
+        // ── SELF-HEALING ANALYTICS (BACKFILL) ──
+        // For performance, we calculate stats using DB data, but we'll enrich 'General' articles 
+        // with Store data on-the-fly and queue a background update for the DB.
+        const readsToBackfill: Array<{ id: string, data: any }> = [];
+        const enrichedReads = allReads.map((r: any) => {
+            const memArticle = store.getArticleById(r.articleId);
+            const needsBackfill = !r.topic || r.topic === 'General' || r.topic === 'Unknown';
+            
+            // If we have data in memory but not in DB, mark for backfill
+            if (needsBackfill && memArticle) {
+                const wordCount = (memArticle.summary || '').trim().split(/\s+/).filter(Boolean).length;
+                const estSecs = wordCount > 10 ? Math.round((wordCount / 200) * 60) : 60;
+                
+                const updatedData = {
+                    topic: memArticle.topic || 'General',
+                    source: memArticle.source || 'Unknown',
+                    sentiment: memArticle.sentiment || 'Neutral',
+                    estimatedReadSecs: estSecs
+                };
+                readsToBackfill.push({ id: r.id, data: updatedData });
+                return { ...r, ...updatedData };
+            }
+            return r;
+        });
+
+        // Trigger background backfill (limit to 20 per request to avoid DB thrashing)
+        if (readsToBackfill.length > 0) {
+            (async () => {
+                for (const item of readsToBackfill.slice(0, 20)) {
+                    await prisma.readHistory.update({
+                        where: { id: item.id },
+                        data: item.data
+                    }).catch(() => {});
+                }
+            })();
+        }
+
+        const totalReads = enrichedReads.length;
+        const readsNeeded = Math.max(0, MIN_READS_FOR_ANALYTICS - totalReads);
+
+        // Recent reads for timeline (last 50)
+        const recentReads = enrichedReads.slice(0, 50).map((r: any) => {
+            const depthLabel = r.estimatedReadSecs > 0
+                ? (r.timeSpent >= r.estimatedReadSecs * 0.5 ? 'Deep' : 'Skim')
+                : 'N/A';
+            return {
+                articleId: r.articleId,
+                title: r.title || store.getArticleById(r.articleId)?.title || 'Archived Article',
+                topic: r.topic || 'General',
+                source: r.source || 'Unknown',
+                sentiment: r.sentiment || 'Neutral',
+                readAt: r.readAt,
+                timeSpentSecs: r.timeSpent,
+                estimatedReadSecs: r.estimatedReadSecs || 60,
+                depthLabel,
+            };
+        });
+
+        // Topic breakdown
+        const topicCounts: Record<string, number> = {};
+        for (const r of enrichedReads) {
+            const t = r.topic || 'General';
+            topicCounts[t] = (topicCounts[t] || 0) + 1;
+        }
+        const topicBreakdown = Object.entries(topicCounts)
+            .sort((a, b) => b[1] - a[1])
+            .map(([topic, count]) => ({ topic, count, percentage: totalReads > 0 ? Math.round((count / totalReads) * 100) : 0 }));
+
+        // Source breakdown (top 10)
+        const sourceCounts: Record<string, number> = {};
+        for (const r of enrichedReads) {
+            const s = r.source || 'Unknown';
+            if (s) sourceCounts[s] = (sourceCounts[s] || 0) + 1;
+        }
+        const sourceBreakdown = Object.entries(sourceCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10)
+            .map(([source, count]) => ({ source, count }));
+
+        // Hourly pattern (0–23)
+        const hourlyCounts = new Array(24).fill(0);
+        for (const r of enrichedReads) {
+            const h = new Date(r.readAt).getHours();
+            hourlyCounts[h]++;
+        }
+        const hourlyPattern = hourlyCounts.map((count, hour) => ({ hour, count }));
+
+        // Daily pattern: last 14 days
+        const now = new Date();
+        const dailyPattern: Array<{ date: string; label: string; count: number }> = [];
+        for (let i = 13; i >= 0; i--) {
+            const d = new Date(now);
+            d.setDate(d.getDate() - i);
+            d.setHours(0, 0, 0, 0);
+            const dEnd = new Date(d);
+            dEnd.setDate(dEnd.getDate() + 1);
+            const count = enrichedReads.filter((r: any) => new Date(r.readAt) >= d && new Date(r.readAt) < dEnd).length;
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dailyPattern.push({ date: d.toISOString().split('T')[0], label: `${dayNames[d.getDay()]} ${d.getDate()}`, count });
+        }
+
+        // Weekly pattern: last 8 weeks
+        const weeklyPattern: Array<{ weekLabel: string; count: number }> = [];
+        for (let i = 7; i >= 0; i--) {
+            const weekStart = new Date(now);
+            weekStart.setDate(weekStart.getDate() - weekStart.getDay() - i * 7);
+            weekStart.setHours(0, 0, 0, 0);
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekEnd.getDate() + 7);
+            const count = enrichedReads.filter((r: any) => new Date(r.readAt) >= weekStart && new Date(r.readAt) < weekEnd).length;
+            const mo = weekStart.toLocaleString('en', { month: 'short' });
+            weeklyPattern.push({ weekLabel: `${mo} ${weekStart.getDate()}`, count });
+        }
+
+        // Sentiment distribution
+        const sentimentCounts = { Positive: 0, Neutral: 0, Negative: 0, Unknown: 0 };
+        for (const r of enrichedReads) {
+            const s = r.sentiment as keyof typeof sentimentCounts;
+            if (s && s in sentimentCounts) sentimentCounts[s]++;
+            else sentimentCounts.Unknown++;
+        }
+
+        // Read depth stats
+        let deepReads = 0;
+        let skimReads = 0;
+        let totalTimeSpentSecs = 0;
+        for (const r of enrichedReads) {
+            totalTimeSpentSecs += r.timeSpent;
+            if (r.estimatedReadSecs > 0) {
+                if (r.timeSpent >= r.estimatedReadSecs * 0.5) deepReads++;
+                else skimReads++;
+            }
+        }
+        const avgTimeSpentSecs = totalReads > 0 ? Math.round(totalTimeSpentSecs / totalReads) : 0;
+
+        // Liked topic breakdown
+        const likedTopicCounts: Record<string, number> = {};
+        for (const l of allLiked) {
+            const t = l.topic || 'General';
+            likedTopicCounts[t] = (likedTopicCounts[t] || 0) + 1;
+        }
+        const likedTopics = Object.entries(likedTopicCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 6)
+            .map(([topic, count]) => ({ topic, count }));
+
+        const engagementRate = totalReads > 0 ? Math.round((allLiked.length / totalReads) * 100) : 0;
+        const peakHour = hourlyCounts.indexOf(Math.max(...hourlyCounts));
+        const fmtHour = (h: number) => h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`;
+
+        return {
+            readsNeeded,
+            totalReads,
+            recentReads,
+            topicBreakdown,
+            sourceBreakdown,
+            hourlyPattern,
+            dailyPattern,
+            weeklyPattern,
+            sentimentBreakdown: sentimentCounts,
+            deepReads,
+            skimReads,
+            avgTimeSpentSecs,
+            engagementRate,
+            likedTopics,
+            likedArticles: allLiked.slice(0, 20).map((l: any) => ({ id: l.articleId, title: l.title, topic: l.topic, source: l.source, link: l.link, likedAt: l.likedAt })),
+            savedArticles: allSaved.slice(0, 20).map((s: any) => ({ id: s.articleId, title: s.title, topic: s.topic, source: s.source, link: s.link, savedAt: s.savedAt })),
+            topSource: sourceBreakdown[0]?.source || 'N/A',
+            peakHourLabel: fmtHour(peakHour),
+            currentStreak: user?.currentStreak || 0,
+            longestStreak: user?.longestStreak || 0,
+            totalReadTime: user?.totalReadTime || 0,
+        };
+    });
+
     // Get liked articles (from DB, denormalized)
     server.get('/liked', { preHandler: requireAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
+
         const userId = (request as any).userId;
         const liked = await prisma.likedArticle.findMany({
             where: { userId },

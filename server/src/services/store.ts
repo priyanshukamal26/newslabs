@@ -30,6 +30,8 @@ export interface Article extends FeedItem {
     classificationConfidence?: number;
     secondaryTags?: string[];
     primaryCategory?: string;   // stable NLP model category (never overwritten by AI)
+    classificationSignals?: string[];
+    biasIndicator?: 'Neutral' | 'Slightly Opinionated' | 'Strongly Opinionated';
 }
 
 export interface SystemFeed {

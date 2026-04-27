@@ -29,6 +29,7 @@ export interface ClassificationResult {
     primary: PrimaryCategory;
     confidence: number;       // 0–1
     secondaryTags: string[];
+    classificationSignals?: string[];
 }
 
 export interface SentimentResult {
@@ -254,7 +255,7 @@ function tfidfTransform(tokens: string[], model: ModelArtifact): number[] {
     return vec;
 }
 
-function logregPredict(vec: number[], model: ModelArtifact): { label: string; confidence: number } {
+function logregPredict(vec: number[], model: ModelArtifact): { label: string; confidence: number; topFeatures: string[] } {
     const logits = model.coef.map((row, c) => {
         let sum = model.intercept[c];
         for (let i = 0; i < vec.length; i++) {
@@ -269,9 +270,29 @@ function logregPredict(vec: number[], model: ModelArtifact): { label: string; co
         if (probs[i] > probs[bestIdx]) bestIdx = i;
     }
 
+    // Extract top features
+    const contributions = [];
+    const row = model.coef[bestIdx];
+    for (let i = 0; i < vec.length; i++) {
+        if (vec[i] !== 0) {
+            contributions.push({ index: i, weight: row[i] * vec[i] });
+        }
+    }
+    contributions.sort((a, b) => b.weight - a.weight);
+    
+    // Invert vocab lazily if needed to map back
+    const topIndices = contributions.slice(0, 3).map(c => c.index);
+    const topFeatures = [];
+    for (const [word, index] of Object.entries(model.vocab)) {
+        if (topIndices.includes(index)) {
+            topFeatures.push(word);
+        }
+    }
+
     return {
         label: model.classes[bestIdx],
         confidence: probs[bestIdx],
+        topFeatures,
     };
 }
 
@@ -369,12 +390,14 @@ class NlpService {
 
         let primary: PrimaryCategory;
         let confidence: number;
+        let classificationSignals: string[] = [];
 
         if (this.model && this.status === 'ready' && tokens.length > 0) {
             const vec = tfidfTransform(tokens, this.model);
             const pred = logregPredict(vec, this.model);
             primary = (FINAL_CATEGORIES.includes(pred.label as PrimaryCategory) ? pred.label : 'General') as PrimaryCategory;
             confidence = pred.confidence;
+            classificationSignals = pred.topFeatures;
 
             // Boost confidence with source bias
             if (source && confidence < 0.85) {
@@ -397,6 +420,7 @@ class NlpService {
             primary: indiaResult.primary,
             confidence: Math.round(confidence * 1000) / 1000,
             secondaryTags: indiaResult.secondaryTags,
+            classificationSignals,
         };
     }
 
@@ -482,7 +506,7 @@ class NlpService {
 
     // ── 4. Reliability scoring ───────────────────────────────────────────
 
-    scoreReliability(title: string, content?: string, source?: string): ReliabilityResult {
+    scoreReliability(title: string, content?: string, source?: string, pubDate?: string): ReliabilityResult {
         let score = 40; // baseline
         const signals: string[] = [];
 
@@ -494,6 +518,21 @@ class NlpService {
                     score += bonus;
                     signals.push(`Trusted source (+${bonus})`);
                     break;
+                }
+            }
+        }
+
+        // Recency score bonus
+        if (pubDate) {
+            const ts = new Date(pubDate).getTime();
+            if (!isNaN(ts)) {
+                const hoursAgo = (Date.now() - ts) / (1000 * 60 * 60);
+                if (hoursAgo <= 12) {
+                    score += 5;
+                    signals.push('Highly recent (+5)');
+                } else if (hoursAgo <= 24) {
+                    score += 2;
+                    signals.push('Recent (+2)');
                 }
             }
         }

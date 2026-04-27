@@ -1,4 +1,5 @@
 import axios from 'axios';
+// Triggering Vite refresh for getReadLab export
 
 export const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
@@ -40,6 +41,8 @@ export interface Article {
     classificationConfidence?: number;
     secondaryTags?: string[];
     primaryCategory?: string;
+    classificationSignals?: string[];
+    biasIndicator?: 'Neutral' | 'Slightly Opinionated' | 'Strongly Opinionated';
 }
 
 export interface UserFeed {
@@ -110,9 +113,12 @@ export const saveArticle = async (articleId: string, articleData?: any) => {
     return data;
 };
 
-// Record read
-export const recordRead = async (articleId: string) => {
-    const { data } = await api.post(`/user/read/${articleId}`, {});
+// Record read — sends real timeSpent (seconds) + article metadata for analytics
+export const recordRead = async (
+    articleId: string,
+    meta?: { timeSpent?: number; summary?: string; topic?: string; source?: string; sentiment?: string }
+) => {
+    const { data } = await api.post(`/user/read/${articleId}`, meta || {});
     return data;
 };
 
@@ -187,6 +193,34 @@ export const getLikedArticles = async () => {
 export const getSavedArticles = async () => {
     const { data } = await api.get('/user/saved');
     return data;
+};
+
+// Reading Lab analytics
+export const fetchReadLab = async () => {
+    const { data } = await api.get('/user/read-lab');
+    return data as {
+        readsNeeded: number;
+        totalReads: number;
+        recentReads: Array<{ articleId: string; title: string; topic: string; source: string; sentiment: string; readAt: string; timeSpentSecs: number; estimatedReadSecs: number; depthLabel: string }>;
+        topicBreakdown: Array<{ topic: string; count: number; percentage: number }>;
+        sourceBreakdown: Array<{ source: string; count: number }>;
+        hourlyPattern: Array<{ hour: number; count: number }>;
+        dailyPattern: Array<{ date: string; label: string; count: number }>;
+        weeklyPattern: Array<{ weekLabel: string; count: number }>;
+        sentimentBreakdown: { Positive: number; Neutral: number; Negative: number; Unknown: number };
+        deepReads: number;
+        skimReads: number;
+        avgTimeSpentSecs: number;
+        engagementRate: number;
+        likedTopics: Array<{ topic: string; count: number }>;
+        likedArticles: Array<{ id: string; title: string; topic: string; source: string; link: string; likedAt: string }>;
+        savedArticles: Array<{ id: string; title: string; topic: string; source: string; link: string; savedAt: string }>;
+        topSource: string;
+        peakHourLabel: string;
+        currentStreak: number;
+        longestStreak: number;
+        totalReadTime: number;
+    };
 };
 
 // Feed management

@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen, Clock, Sparkles, X, ExternalLink, Flame, Hash,
   ChevronRight, BarChart3, Bookmark, Bell, Search,
-  Zap, Filter, List, LayoutGrid,
+  Zap, Filter, List, LayoutGrid, Activity,
   Share2, RefreshCw, Heart, Check, ChevronDown, Loader2, Settings, HelpCircle, MessageSquare
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -15,12 +15,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchFeed, triggerRefresh, analyzeArticle, Article, api,
   getUserStats, likeArticle, saveArticle, recordRead,
-  getUserInteractions, getInsights,
+  getUserInteractions, getInsights, fetchReadLab,
   getSavedArticles, getNotifications, markAllNotificationsRead,
   getNotificationLogs, NotificationLogEntry
 } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { AIChat } from "../components/AIChat";
+import { ReadingLabTab } from "./ReadingLabTab";
 
 /* ── Style tokens ──────────────────────────────────────────────────── */
 const mono = { fontFamily: "'JetBrains Mono', monospace" };
@@ -124,6 +125,23 @@ function NpTypeBadge({ type, signals }: { type?: string; signals?: string[] }) {
   );
 }
 
+function NpBiasBadge({ bias }: { bias?: string }) {
+  if (!bias || bias === 'Neutral') return null;
+  const cfg: Record<string, { classes: string; label: string }> = {
+    'Slightly Opinionated': { classes: 'text-amber-700 border-amber-300 bg-amber-50 dark:bg-amber-950/20', label: 'Opinionated' },
+    'Strongly Opinionated': { classes: 'text-editorial-red border-red-400 bg-red-50 dark:bg-red-950/20', label: 'Strong Bias' },
+  };
+  const c = cfg[bias];
+  if (!c) return null;
+  return (
+    <NpTooltip tip="Bias Indicator" detail={`Analyzed tone: ${bias}.`}>
+      <span className={`text-[9px] font-black uppercase tracking-[0.15em] px-1.5 py-0.5 border cursor-help ${c.classes}`} style={mono}>
+        {c.label}
+      </span>
+    </NpTooltip>
+  );
+}
+
 function NpReliabilityBadge({ tier, score, signals }: { tier?: string; score?: number; signals?: string[] }) {
   if (!tier || score === undefined) return null;
   const cfg: Record<string, { classes: string; icon: string }> = {
@@ -144,12 +162,13 @@ function NpReliabilityBadge({ tier, score, signals }: { tier?: string; score?: n
   );
 }
 
-function NpConfidenceBadge({ confidence }: { confidence?: number }) {
+function NpConfidenceBadge({ confidence, signals }: { confidence?: number, signals?: string[] }) {
   if (confidence === undefined) return null;
   const pct = Math.round(confidence * 100);
+  const sigText = signals && signals.length > 0 ? ` Reason: ${signals.join(', ')}.` : '';
   return (
-    <NpTooltip tip={`Model confidence: ${pct}%`} detail="The TF-IDF + Logistic Regression classifier's certainty about the assigned category. Above 70% is reliable.">
-      <span className="text-[9px] font-bold tracking-[0.12em] text-neutral-400 border border-dashed border-neutral-300 px-1.5 py-0.5 cursor-help" style={mono}>
+    <NpTooltip tip={`Model confidence: ${pct}%`} detail={`The TF-IDF + Logistic Regression classifier's certainty about the assigned category.${sigText}`}>
+      <span className="text-[9px] font-bold tracking-[0.12em] text-neutral-500 border border-dashed border-neutral-300 px-1.5 py-0.5 cursor-help" style={mono}>
         {pct}%
       </span>
     </NpTooltip>
@@ -176,24 +195,11 @@ export default function DashboardPage() {
   const { user, updateUser, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: interactions, refetch: refetchInteractions } = useQuery({
-    queryKey: ["interactions"],
-    queryFn: getUserInteractions,
-    enabled: isAuthenticated,
-  });
-  const { data: stats } = useQuery({ queryKey: ["user-stats"], queryFn: getUserStats, enabled: isAuthenticated });
-  const { data: insightsData } = useQuery({ queryKey: ["insights"], queryFn: getInsights, staleTime: 5 * 60 * 1000 });
-  const { data: savedArticlesList = [] } = useQuery({ queryKey: ["saved-articles"], queryFn: getSavedArticles, enabled: isAuthenticated });
-  const { data: notifications = [] } = useQuery({ queryKey: ["notifications"], queryFn: getNotifications, enabled: isAuthenticated });
-  const { data: notificationLogs } = useQuery({ queryKey: ["notification-logs"], queryFn: getNotificationLogs, enabled: isAuthenticated });
-
-  const unreadCount = Array.isArray(notifications) ? notifications.filter((n: any) => !n.read).length : 0;
-
   /* ── UI State ───────────────────────────────────────────────────── */
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [activeTopics, setActiveTopics] = useState<string[]>(["All"]);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
-  const [dashboardTab, setDashboardTab] = useState<"live" | "brief">("live");
+  const [dashboardTab, setDashboardTab] = useState<"live" | "brief" | "lab">("live");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
@@ -205,12 +211,33 @@ export default function DashboardPage() {
   const [displayCount, setDisplayCount] = useState<number>(() => {
     const s = localStorage.getItem("newslab_perPage"); return s ? parseInt(s) : DEFAULT_PER_PAGE;
   });
+
+  const { data: interactions, refetch: refetchInteractions } = useQuery({
+    queryKey: ["interactions"],
+    queryFn: getUserInteractions,
+    enabled: isAuthenticated,
+  });
+  const { data: stats } = useQuery({ queryKey: ["user-stats"], queryFn: getUserStats, enabled: isAuthenticated });
+  const { data: insightsData } = useQuery({ queryKey: ["insights"], queryFn: getInsights, staleTime: 5 * 60 * 1000 });
+  const { data: savedArticlesList = [] } = useQuery({ queryKey: ["saved-articles"], queryFn: getSavedArticles, enabled: isAuthenticated });
+  const { data: notifications = [] } = useQuery({ queryKey: ["notifications"], queryFn: getNotifications, enabled: isAuthenticated });
+  const { data: notificationLogs } = useQuery({ queryKey: ["notification-logs"], queryFn: getNotificationLogs, enabled: isAuthenticated });
+  const { data: labData, isLoading: labLoading } = useQuery({
+    queryKey: ["read-lab"],
+    queryFn: fetchReadLab,
+    enabled: isAuthenticated && dashboardTab === "lab",
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const unreadCount = Array.isArray(notifications) ? notifications.filter((n: any) => !n.read).length : 0;
+
   const [aiCooldownEnd, setAiCooldownEnd] = useState(0);
   const [aiCooldownLeft, setAiCooldownLeft] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [waitingForCooldown, setWaitingForCooldown] = useState(false);
   const [articleSummaryMode, setArticleSummaryMode] = useState<SummaryMode>("balanced");
   const [isReanalyzing, setIsReanalyzing] = useState(false);
+  const articleOpenedAt = useRef<number>(0);
   /* Track the displayed analysis separately so mode-switch doesn't wipe article metadata */
   const [overrideAnalysis, setOverrideAnalysis] = useState<{ summary: string; insights: string[]; why: string; topic: string } | null>(null);
 
@@ -264,9 +291,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (selectedArticle) {
+      articleOpenedAt.current = Date.now(); // start timer
       setOverrideAnalysis(null);
       setArticleSummaryMode((user as any)?.summaryMode || "balanced");
-      if (isAuthenticated) { recordRead(selectedArticle.id).catch(() => { }); queryClient.invalidateQueries({ queryKey: ["user-stats"] }); }
       if (selectedArticle.summary === "Click to analyze") handleAnalyzeArticle(selectedArticle);
     }
   }, [selectedArticle?.id]);
@@ -275,6 +302,23 @@ export default function DashboardPage() {
     if (aiCooldownLeft === 0 && waitingForCooldown && selectedArticle?.summary === "Click to analyze" && !isAnalyzing)
       handleAnalyzeArticle(selectedArticle!);
   }, [aiCooldownLeft, waitingForCooldown, selectedArticle, isAnalyzing]);
+
+  /* Close article panel — records real time spent */
+  const handleCloseArticle = () => {
+    if (selectedArticle && isAuthenticated) {
+      const secs = Math.round((Date.now() - articleOpenedAt.current) / 1000);
+      recordRead(selectedArticle.id, {
+        timeSpent: secs,
+        summary: selectedArticle.summary !== "Click to analyze" ? selectedArticle.summary : "",
+        topic: selectedArticle.topic || "",
+        source: selectedArticle.source || "",
+        sentiment: selectedArticle.sentiment || "",
+      }).catch(() => {});
+      queryClient.invalidateQueries({ queryKey: ["user-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["read-lab"] });
+    }
+    setSelectedArticle(null);
+  };
 
   useEffect(() => {
     if (user?.topics && user.topics.length > 0) setActiveTopics(user.topics);
@@ -646,6 +690,10 @@ export default function DashboardPage() {
                 className={`pb-3 text-lg font-black flex items-center gap-2 border-b-2 transition-all ${dashboardTab === "brief" ? "border-ink text-ink" : "border-transparent text-neutral-400 hover:text-ink"}`} style={serif}>
                 <MessageSquare className={`h-4 w-4 ${dashboardTab === "brief" ? "text-editorial-red" : ""}`} /> Today's Brief
               </button>
+              <button onClick={() => setDashboardTab("lab")}
+                className={`pb-3 text-lg font-black flex items-center gap-2 border-b-2 transition-all ${dashboardTab === "lab" ? "border-ink text-ink" : "border-transparent text-neutral-400 hover:text-ink"}`} style={serif}>
+                <Activity className={`h-4 w-4 ${dashboardTab === "lab" ? "text-editorial-red" : ""}`} /> Reading Lab
+              </button>
               
               {dashboardTab === "live" && (
                 <span className="ml-auto text-[10px] text-neutral-400 pb-3" style={mono}>Showing {paginatedArticles.length} of {filtered.length}</span>
@@ -740,11 +788,23 @@ export default function DashboardPage() {
                         {article.pubDate && <span className="text-[9px] text-neutral-400" style={mono}>· {timeAgo(article.pubDate)}</span>}
                         <span className="ml-auto text-[9px] text-neutral-400 truncate max-w-[120px]" style={mono}>{article.source}</span>
                       </div>
+                      
+                      {/* Confidence Bar */}
+                      {article.classificationConfidence !== undefined && !article.categorizing && (
+                        <div className="w-full bg-divider-grey h-0.5 mb-2 relative" title={`Category Confidence: ${Math.round(article.classificationConfidence * 100)}%`}>
+                          <div 
+                            className={`absolute left-0 top-0 h-full ${article.classificationConfidence > 0.7 ? 'bg-emerald-500' : article.classificationConfidence > 0.4 ? 'bg-amber-400' : 'bg-editorial-red'}`} 
+                            style={{ width: `${Math.max(5, article.classificationConfidence * 100)}%` }} 
+                          />
+                        </div>
+                      )}
                       {/* NLP badges row */}
-                      {(article.sentiment || article.articleType === 'Opinion' || article.reliabilityTier) && (
+                      {(article.sentiment || article.articleType === 'Opinion' || article.reliabilityTier || article.biasIndicator || article.classificationConfidence) && (
                         <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+                          {article.classificationConfidence !== undefined && <NpConfidenceBadge confidence={article.classificationConfidence} signals={article.classificationSignals} />}
                           <NpSentimentBadge sentiment={article.sentiment} signals={article.sentimentSignals} />
                           <NpTypeBadge type={article.articleType} signals={article.opinionSignals} />
+                          <NpBiasBadge bias={article.biasIndicator} />
                           <NpReliabilityBadge tier={article.reliabilityTier} score={article.reliability} signals={article.reliabilitySignals} />
                         </div>
                       )}
@@ -804,7 +864,7 @@ export default function DashboardPage() {
               </div>
             </motion.div>
             </>
-            ) : (
+            ) : dashboardTab === "brief" ? (
               <div className="space-y-8">
                 {(!notificationLogs?.logs || notificationLogs.logs.length === 0) ? (
                   <div className="text-center py-20 border border-ink bg-paper">
@@ -943,6 +1003,8 @@ export default function DashboardPage() {
                   })
                 )}
               </div>
+            ) : (
+              <ReadingLabTab labData={labData} isLoading={labLoading} isAuthenticated={isAuthenticated} />
             )}
           </main>
         </div>
@@ -953,7 +1015,7 @@ export default function DashboardPage() {
         {selectedArticle && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-ink/60 backdrop-blur-sm flex items-center justify-center p-4"
-            onClick={() => setSelectedArticle(null)}>
+            onClick={handleCloseArticle}>
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
@@ -998,7 +1060,7 @@ export default function DashboardPage() {
                       ))}
                     </div>
                   )}
-                  <button onClick={() => setSelectedArticle(null)} className="text-neutral-400 hover:text-ink transition-colors" style={{ borderRadius: 0 }}>
+                  <button onClick={handleCloseArticle} className="text-neutral-400 hover:text-ink transition-colors" style={{ borderRadius: 0 }}>
                     <X className="h-4 w-4" />
                   </button>
                 </div>

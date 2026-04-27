@@ -439,7 +439,40 @@ export class AiService {
     }
 
     async analyzeTrending(articleTitles: string[]): Promise<string[]> {
-        return ['Agentic AI', 'Climate Tech', 'Economic Policy', 'Cybersecurity', 'Startups', 'Health Tech', 'Space'];
+        if (!articleTitles || articleTitles.length === 0) return ['No Data'];
+
+        const stopwords = new Set(['the', 'and', 'to', 'of', 'a', 'in', 'for', 'is', 'on', 'that', 'by', 'this', 'with', 'i', 'you', 'it', 'not', 'or', 'be', 'are', 'from', 'at', 'as', 'your', 'all', 'have', 'new', 'more', 'an', 'was', 'we', 'will', 'home', 'can', 'us', 'about', 'if', 'page', 'my', 'has', 'search', 'free', 'but', 'our', 'one', 'other', 'do', 'no', 'information', 'time', 'they', 'site', 'he', 'up', 'may', 'what', 'which', 'their', 'news', 'out', 'use', 'any', 'there', 'see', 'only', 'so', 'his', 'when', 'contact', 'here', 'business', 'who', 'web', 'also', 'now', 'help', 'get', 'pm', 'view', 'online', 'first', 'am', 'been', 'would', 'how', 'were', 'me', 's', 'services', 'some', 'these', 'click', 'its', 'like', 'service', 'x', 'than', 'find', 'price', 'date', 'back', 'top', 'people', 'had', 'list', 'name', 'just', 'over', 'state', 'year', 'day', 'into', 'email', 'two', 'health', 'n', 'world', 're', 'next', 'used', 'go', 'b', 'work', 'last', 'most', 'products', 'music', 'buy', 'data', 'make', 'them', 'should', 'product', 'system', 'post', 'her', 'city', 't', 'add', 'policy', 'number', 'such', 'please', 'available', 'copyright', 'support', 'message', 'after', 'best', 'software', 'then', 'jan', 'good', 'video', 'well', 'd', 'where', 'info', 'rights', 'public', 'books', 'high', 'school', 'through', 'm', 'each', 'links', 'she', 'review', 'years', 'order', 'very', 'privacy', 'book', 'items', 'company', 'read', 'group', 'sex', 'need', 'many', 'user', 'said', 'de', 'does', 'set', 'under', 'general', 'research', 'university', 'january', 'mail', 'full', 'map', 'reviews', 'program', 'life']);
+        
+        const counts: Record<string, number> = {};
+        for (const title of articleTitles) {
+            const words = title.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 2 && !stopwords.has(w));
+            
+            // Count unigrams
+            for (const word of words) {
+                counts[word] = (counts[word] || 0) + 1;
+            }
+            
+            // Count bigrams
+            for (let i = 0; i < words.length - 1; i++) {
+                const bigram = `${words[i]} ${words[i+1]}`;
+                counts[bigram] = (counts[bigram] || 0) + 1.5; // weight bigrams slightly higher
+            }
+        }
+
+        const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+        
+        // Filter out overlapping unigrams/bigrams naively and take top 7
+        const trends: string[] = [];
+        for (const [word] of sorted) {
+            if (trends.length >= 7) break;
+            const isSubpart = trends.some(t => t.includes(word) || word.includes(t));
+            if (!isSubpart) {
+                // capitalize first letter
+                trends.push(word.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '));
+            }
+        }
+        
+        return trends.length > 0 ? trends : ['Global Developments', 'AI & ML', 'Startups', 'Cybersecurity', 'Health Tech', 'Space', 'Innovation'];
     }
 
     async analyzeInsights(articleTitles: string[], articleTopics: string[]): Promise<{
