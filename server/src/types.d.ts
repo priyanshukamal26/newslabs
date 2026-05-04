@@ -7,3 +7,8 @@ declare module 'rss-parser' {
 declare module 'xml2js' {
     export function parseStringPromise(xml: string): Promise<any>;
 }
+
+declare module 'he' {
+    export function decode(html: string): string;
+    export function encode(text: string): string;
+}
