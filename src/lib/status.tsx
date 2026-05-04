@@ -106,9 +106,9 @@ export function StatusProvider({ children }: { children: React.ReactNode }) {
                 }
             }
             setService("nlp", {
-                status: body?.nlpClassifier === "ready" ? "operational" : body?.nlpClassifier === "training" ? "degraded" : "down",
-                latency: body?.nlpClassifier === "ready" ? latency : null,
-                detail: body?.nlpClassifier === "ready" ? "Logistic Regression Classifier" : body?.nlpClassifier === "training" ? "Training on startup..." : "Classifier failed to load",
+                status: body?.nlpClassifier?.status === "ready" ? "operational" : body?.nlpClassifier?.status === "training" ? "degraded" : "down",
+                latency: body?.nlpClassifier?.status === "ready" ? latency : null,
+                detail: body?.nlpClassifier?.status === "ready" ? "Logistic Regression Classifier" : body?.nlpClassifier?.status === "training" ? "Training on startup..." : "Classifier failed to load",
             });
         } catch (err: any) {
             const latency = Math.round(performance.now() - t0Backend);

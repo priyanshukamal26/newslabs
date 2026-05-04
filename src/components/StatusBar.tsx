@@ -167,7 +167,7 @@ export function StatusBar() {
                                         variants={listContainer}
                                         initial="hidden"
                                         animate="show"
-                                        className="max-w-screen-xl mx-auto px-4 py-8 grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-0 sm:divide-x divide-[#E5E5E0]"
+                                        className="max-w-screen-xl mx-auto px-4 py-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-0 lg:divide-x divide-[#E5E5E0]"
                                     >
                                         {services.map((svc) => (
                                             <motion.div variants={listItem} key={svc.id} className="flex items-start gap-4 px-0 sm:px-8 first:pl-0 last:pr-0">

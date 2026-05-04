@@ -13,6 +13,11 @@ const prisma = new PrismaClient();
 
 export async function userRoutes(server: FastifyInstance) {
 
+    // Diagnostic ping
+    server.get('/ping', async () => {
+        return { status: 'ok', message: 'User routes prefix active', timestamp: new Date().toISOString() };
+    });
+
     // Update login streak on any authenticated request
     const updateLoginStreak = async (userId: string) => {
         const user = await prisma.user.findUnique({ where: { id: userId } });

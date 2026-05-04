@@ -45,9 +45,23 @@ interface ModelArtifact {
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-// Paths updated to the new AI directory structure
-const MODEL_PATH = path.resolve(process.cwd(), 'src/ai/models/nlp_model.json');
-const META_PATH  = path.resolve(process.cwd(), 'src/ai/models/nlp_meta.json');
+// Paths updated to be more resilient in both development and production (Render)
+const getModelPath = (filename: string) => {
+    const root = process.cwd();
+    const paths = [
+        path.join(root, 'src', 'ai', 'models', filename),
+        path.join(root, 'server', 'src', 'ai', 'models', filename), // if running from project root
+        path.join(__dirname, '..', 'ai', 'models', filename),       // relative to this file
+        path.join(__dirname, '..', '..', 'src', 'ai', 'models', filename),
+    ];
+    for (const p of paths) {
+        if (fs.existsSync(p)) return p;
+    }
+    return path.join(root, 'src', 'ai', 'models', filename); // default fallback
+};
+
+const MODEL_PATH = getModelPath('nlp_model.json');
+const META_PATH  = getModelPath('nlp_meta.json');
 
 const FINAL_CATEGORIES: PrimaryCategory[] = [
     'Technology', 'Business & Finance', 'World Affairs', 'Science & Space',
