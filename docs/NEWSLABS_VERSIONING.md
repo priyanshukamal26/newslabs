@@ -3,13 +3,13 @@
 ## Current Project State
 
 - **Project**: NewsLabs
-- **Current Stable Release**: v3.3.0
+- **Current Stable Release**: v3.3.1
 - **Hosting**: Vercel (Frontend) + Render (Backend)
 - **Database**: Supabase (PostgreSQL)
 - **GitHub Production Branch**: `main`
 - **Development Phase**: Transitioning to v3.4 / v4.0
 
-Version 3.3.0 is currently the stable baseline. A permanent restore point for the previous state has been created as `v3.0.0-legacy` on GitHub. Before pushing major architectural changes or new AI models, a new version tag should be created.
+Version 3.3.1 is currently the stable baseline. A permanent restore point for the previous state has been created as `v3.0.0-legacy` on GitHub. Before pushing major architectural changes or new AI models, a new version tag should be created.
 
 ---
 
