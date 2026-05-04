@@ -1,15 +1,13 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db';
 import { parseStringPromise } from 'xml2js';
 import { requireAuth } from '../middleware/auth';
 import { store, SYSTEM_FEEDS } from '../services/store';
 import { rssService } from '../services/rss';
 import { aiService } from '../services/ai';
 import { encryptText, maskKey } from '../services/crypto';
-
-const prisma = new PrismaClient();
 
 export async function userRoutes(server: FastifyInstance) {
 

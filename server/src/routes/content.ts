@@ -3,15 +3,13 @@ import { store, Article } from '../services/store';
 import { rssService } from '../services/rss';
 import { aiService } from '../services/ai';
 import { nlpService } from '../services/nlp';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db';
 import { getUserIdFromRequest } from '../middleware/auth';
 import { decryptText } from '../services/crypto';
 import { v4 as uuidv4 } from 'uuid';
 import natural from 'natural';
 import fs from 'fs';
 import path from 'path';
-
-const prisma = new PrismaClient();
 
 const categoryKeywords: Record<string, string[]> = {
     "AI & ML": ["ai", "artificial intelligence", "machine learning", "deep learning", "neural", "llm", "gpt", "chatgpt", "openai", "anthropic", "gemini", "copilot", "model", "transformer", "groq", "claude", "diffusion", "generative", "nlp", "computer vision", "training", "inference", "agent", "rag", "prompt", "chatbot", "automation", "algorithm", "dataset", "mistral", "perplexity", "stable diffusion", "midjourney", "text to image"],

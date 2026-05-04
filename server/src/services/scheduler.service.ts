@@ -11,7 +11,7 @@
  */
 
 import cron from 'node-cron';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db';
 import { store } from './store';
 import {
     sendTelegram, sendDiscord,
@@ -19,7 +19,6 @@ import {
     ArticlePayload, NotificationSlot,
 } from './notifier.service';
 
-const prisma = new PrismaClient();
 
 // ── Slot configuration ────────────────────────────────────────────────────────
 

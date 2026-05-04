@@ -5,14 +5,12 @@
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db';
 import { requireAuth } from '../middleware/auth';
 import { generateConnectToken, resolveToken, getBotUsername } from '../services/telegram.setup';
 import { validateDiscordWebhook } from '../services/notifier.service';
 import { testDispatch } from '../services/scheduler.service';
 import { sendTelegram } from '../services/notifier.service';
-
-const prisma = new PrismaClient();
 
 const VALID_SLOTS = ['morning', 'noon', 'evening', 'night'] as const;
 type SlotKey = typeof VALID_SLOTS[number];
