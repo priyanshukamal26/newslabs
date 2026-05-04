@@ -46,11 +46,12 @@ except ImportError as e:
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-SERVER_DIR = os.path.dirname(SCRIPT_DIR)
+AI_DIR     = os.path.dirname(SCRIPT_DIR)
+SERVER_DIR = os.path.dirname(AI_DIR)
 PROJECT_ROOT = os.path.dirname(os.path.dirname(SERVER_DIR))
 
 DEFAULT_CSV = os.path.join(PROJECT_ROOT, "datasets", "momentum_news_data.csv")
-DEFAULT_OUT_DIR = os.path.join(SERVER_DIR, "data")
+DEFAULT_OUT_DIR = os.path.join(AI_DIR, "models")
 DEFAULT_MODEL_OUT = os.path.join(DEFAULT_OUT_DIR, "nlp_model.json")
 DEFAULT_META_OUT = os.path.join(DEFAULT_OUT_DIR, "nlp_meta.json")
 

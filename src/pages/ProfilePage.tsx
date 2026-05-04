@@ -151,16 +151,17 @@ function FeedManagementCard() {
     const [newUrl, setNewUrl] = useState("");
     const [newDisplayName, setNewDisplayName] = useState("");
     const [newCategory, setNewCategory] = useState("");
+    const [newReliability, setNewReliability] = useState<number>(5);
     const [editingFeedId, setEditingFeedId] = useState<string | null>(null);
-    const [editValues, setEditValues] = useState({ displayName: "", category: "", url: "" });
+    const [editValues, setEditValues] = useState({ displayName: "", category: "", url: "", reliability: 5 });
 
     const addMutation = useMutation({
-        mutationFn: () => addUserFeed({ url: newUrl, displayName: newDisplayName || undefined, category: newCategory || undefined }),
+        mutationFn: () => addUserFeed({ url: newUrl, displayName: newDisplayName || undefined, category: newCategory || undefined, reliability: newReliability }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["user-feeds"] });
             toast.success("Feed added successfully!");
             setShowAddForm(false);
-            setNewUrl(""); setNewDisplayName(""); setNewCategory("");
+            setNewUrl(""); setNewDisplayName(""); setNewCategory(""); setNewReliability(5);
         },
         onError: (e: any) => toast.error(e?.response?.data?.error || "Failed to add feed"),
     });
@@ -220,8 +221,18 @@ function FeedManagementCard() {
                                                     <p className="text-[9px] uppercase tracking-[0.18em] text-neutral-400 mb-1" style={mono}>Category</p>
                                                     <NpInput value={editValues.category} onChange={e => setEditValues({ ...editValues, category: e.target.value })} placeholder="Technology" />
                                                 </div>
+                                                <div>
+                                                    <p className="text-[9px] uppercase tracking-[0.18em] text-neutral-400 mb-1" style={mono}>Reliability (1-10)</p>
+                                                    <input 
+                                                        type="number" min="1" max="10" 
+                                                        value={editValues.reliability} 
+                                                        onChange={e => setEditValues({ ...editValues, reliability: parseInt(e.target.value) || 5 })} 
+                                                        className="w-full bg-transparent border-b border-divider-grey py-1 text-sm focus:outline-none focus:border-ink transition-colors"
+                                                        style={sans}
+                                                    />
+                                                </div>
                                                 <div className="flex gap-2 pt-2">
-                                                    <button onClick={() => updateMutation.mutate({ id: feed.id, payload: { displayName: editValues.displayName, category: editValues.category, url: editValues.url } })}
+                                                    <button onClick={() => updateMutation.mutate({ id: feed.id, payload: { displayName: editValues.displayName, category: editValues.category, url: editValues.url, reliability: editValues.reliability } })}
                                                         disabled={updateMutation.isPending}
                                                         className="px-4 py-2 bg-ink text-paper text-[9px] font-bold uppercase tracking-[0.18em] flex items-center gap-1.5 hover:bg-[#333] transition-colors" style={{ ...sans, borderRadius: 0 }}>
                                                         <Save className="h-3.5 w-3.5" /> Save
@@ -238,6 +249,7 @@ function FeedManagementCard() {
                                                     <div className="flex items-center gap-2 mb-1">
                                                         <span className="text-sm font-bold text-ink" style={sans}>{feed.displayName}</span>
                                                         {feed.category && <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-editorial-red border border-editorial-red px-1.5 py-0.5" style={mono}>{feed.category}</span>}
+                                                        <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-emerald-600 border border-emerald-600/30 bg-emerald-50 px-1.5 py-0.5" style={mono}>Rel: {feed.reliability}</span>
                                                     </div>
                                                     <p className="text-[10px] text-neutral-500 truncate" style={mono}>{feed.url}</p>
                                                 </div>
@@ -246,7 +258,7 @@ function FeedManagementCard() {
                                                         className="p-1.5 text-neutral-400 hover:text-ink transition-colors" title={feed.isActive ? "Deactivate Source" : "Activate Source"}>
                                                         {feed.isActive ? <ToggleRight className="h-5 w-5 text-ink" /> : <ToggleLeft className="h-5 w-5" />}
                                                     </button>
-                                                    <button onClick={() => { setEditValues({ displayName: feed.displayName, category: feed.category || "", url: feed.url }); setEditingFeedId(feed.id); }}
+                                                    <button onClick={() => { setEditValues({ displayName: feed.displayName, category: feed.category || "", url: feed.url, reliability: feed.reliability || 5 }); setEditingFeedId(feed.id); }}
                                                         className="p-1.5 text-neutral-400 hover:text-ink transition-colors">
                                                         <Edit2 className="h-4 w-4" />
                                                     </button>
@@ -284,6 +296,16 @@ function FeedManagementCard() {
                                     <div>
                                         <p className="text-[9px] uppercase tracking-[0.18em] text-neutral-400 mb-1.5" style={mono}>Category (Optional)</p>
                                         <NpInput value={newCategory} onChange={e => setNewCategory(e.target.value)} placeholder="Technology" />
+                                    </div>
+                                    <div>
+                                        <p className="text-[9px] uppercase tracking-[0.18em] text-neutral-400 mb-1.5" style={mono}>Reliability (1-10)</p>
+                                        <input 
+                                            type="number" min="1" max="10" 
+                                            value={newReliability} 
+                                            onChange={e => setNewReliability(parseInt(e.target.value) || 5)} 
+                                            className="w-full bg-transparent border-b border-divider-grey py-1.5 text-sm focus:outline-none focus:border-ink transition-colors"
+                                            style={sans}
+                                        />
                                     </div>
                                 </div>
                                 <div className="flex gap-2">

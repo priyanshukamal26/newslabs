@@ -77,12 +77,12 @@ Update the authenticated user's topic preferences.
 
 **Body**
 ```json
-{ "topics": ["AI & ML", "Science", "DevOps"] }
+{ "topics": ["AI & ML", "Science", "India"] }
 ```
 
 **Response `200`**
 ```json
-{ "user": { "id": "...", "email": "...", "topics": ["AI & ML", "Science", "DevOps"], "aiProvider": "hybrid" } }
+{ "user": { "id": "...", "email": "...", "topics": ["AI & ML", "Science", "India"], "aiProvider": "hybrid" } }
 ```
 
 ---
@@ -127,16 +127,22 @@ Force a synchronous RSS refresh and return updated counts.
 ---
 
 ### `POST /api/content/analyze`
-Trigger AI analysis for a single article. Returns immediately if already analyzed.
+Trigger AI analysis for a single article. Returns immediately if already analyzed (unless `forceMode` is used).
 
 **Body**
 ```json
-{ "id": "article-uuid" }
+{
+  "id": "article-uuid",
+  "summaryMode": "balanced",   // optional: "concise" | "balanced" | "detailed"
+  "forceMode": "force",       // optional: "force" to bypass cache
+  "title": "Article Title",   // optional fallback
+  "link": "https://..."      // optional fallback
+}
 ```
 
 **Headers** *(optional)*: `Authorization: Bearer <JWT>` — uses user's preferred AI provider if provided.
 
-**Response `200`** — full `Article` object with populated `summary`, `insights`, `why`, `topic`.
+**Response `200`** — full `Article` object with populated `summary`, `insights`, `why`, `topic`, `sentiment`, `reliability`, etc.
 
 ---
 
@@ -145,7 +151,7 @@ Returns top 7 trending words extracted from article titles.
 
 **Response `200`**
 ```json
-{ "trends": ["OpenAI", "Quantum", "React", "Climate", "Gemini", "SpaceX", "Nvidia"] }
+{ "trends": ["OpenAI", "Quantum", "AI", "Climate", "Gemini", "SpaceX", "Nvidia"] }
 ```
 
 ---
@@ -165,7 +171,7 @@ Returns computed insights from the article store.
 ---
 
 ### `GET /api/content/daily-brief`
-Returns 3 curated articles (AI, Science, Tech). Cached for 6 hours.
+Returns 3 curated articles (AI, Science, Tech). Cached for 6 hours. Articles are pulled from the last 72 hours of data.
 
 **Response `200`**
 ```json
@@ -173,7 +179,7 @@ Returns 3 curated articles (AI, Science, Tech). Cached for 6 hours.
   "articles": [
     { "topic": "AI", "title": "...", "time": "3 min", "summary": "...", "link": "https://..." },
     { "topic": "Science", "title": "...", "time": "4 min", "summary": "...", "link": "https://..." },
-    { "topic": "Tech", "title": "...", "time": "2 min", "summary": "...", "link": "https://..." }
+    { "topic": "Technology", "title": "...", "time": "2 min", "summary": "...", "link": "https://..." }
   ],
   "cachedAt": "2025-01-01T00:00:00.000Z",
   "expiresAt": "2025-01-01T06:00:00.000Z"

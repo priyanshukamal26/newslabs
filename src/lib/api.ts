@@ -65,6 +65,7 @@ export interface UserFeed {
     url: string;
     displayName: string;
     category?: string | null;
+    reliability: number;
     isActive: boolean;
     addedAt: string;
 }
@@ -254,12 +255,12 @@ export const validateFeedUrl = async (url: string) => {
     };
 };
 
-export const addUserFeed = async (payload: { url: string; displayName?: string; category?: string | null }) => {
+export const addUserFeed = async (payload: { url: string; displayName?: string; category?: string | null; reliability?: number }) => {
     const { data } = await api.post('/user/feeds', payload);
     return data as { feed: UserFeed };
 };
 
-export const updateUserFeed = async (id: string, payload: { url?: string; displayName?: string; category?: string | null; isActive?: boolean }) => {
+export const updateUserFeed = async (id: string, payload: { url?: string; displayName?: string; category?: string | null; isActive?: boolean; reliability?: number }) => {
     const { data } = await api.put(`/user/feeds/${id}`, payload);
     return data as { feed: UserFeed };
 };

@@ -18,7 +18,7 @@ const INITIAL: Service[] = [
     { id: "vercel", label: "Frontend", icon: Globe, status: "checking", latency: null, detail: "Vercel CDN" },
     { id: "render", label: "API", icon: Server, status: "checking", latency: null, detail: "Render Backend" },
     { id: "supabase", label: "Database", icon: Database, status: "checking", latency: null, detail: "Supabase Postgres" },
-    // { id: "nlp", label: "NLP Engine", icon: Brain, status: "checking", latency: null, detail: "Naive Bayes Classifier" },
+    { id: "nlp", label: "NLP Engine", icon: Brain, status: "checking", latency: null, detail: "Logistic Regression Classifier" },
 ];
 
 interface StatusContextType {
@@ -105,11 +105,11 @@ export function StatusProvider({ children }: { children: React.ReactNode }) {
                     });
                 }
             }
-            // setService("nlp", {
-            //     status: body?.nlpClassifier === "ready" ? "operational" : body?.nlpClassifier === "training" ? "degraded" : "down",
-            //     latency: body?.nlpClassifier === "ready" ? latency : null,
-            //     detail: body?.nlpClassifier === "ready" ? "Naive Bayes Classifier" : body?.nlpClassifier === "training" ? "Training on startup..." : "Classifier failed to load",
-            // });
+            setService("nlp", {
+                status: body?.nlpClassifier === "ready" ? "operational" : body?.nlpClassifier === "training" ? "degraded" : "down",
+                latency: body?.nlpClassifier === "ready" ? latency : null,
+                detail: body?.nlpClassifier === "ready" ? "Logistic Regression Classifier" : body?.nlpClassifier === "training" ? "Training on startup..." : "Classifier failed to load",
+            });
         } catch (err: any) {
             const latency = Math.round(performance.now() - t0Backend);
             const isTimeout = err?.name === "AbortError" || latency >= 19_000;
@@ -137,6 +137,12 @@ export function StatusProvider({ children }: { children: React.ReactNode }) {
                     latency: null,
                 });
             }
+
+            setService("nlp", {
+                status: "degraded",
+                detail: "Status unknown — API unreachable",
+                latency: null,
+            });
         } finally {
             clearTimeout(timeout);
             setLastPing(Date.now());

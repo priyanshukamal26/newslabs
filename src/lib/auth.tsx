@@ -18,25 +18,38 @@ interface AuthContextType {
     updateUser: (user: User) => void;
     logout: () => void;
     isAuthenticated: boolean;
+    isDarkMode: boolean;
+    toggleTheme: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<User | null>(null);
-    // Simple token persistence
-    const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+    // Initialize token and user synchronously to avoid race conditions with queries
+    const [token, setToken] = useState<string | null>(() => {
+        const t = localStorage.getItem('token');
+        if (t) {
+            api.defaults.headers.common['Authorization'] = `Bearer ${t}`;
+        }
+        return t;
+    });
 
+    const [user, setUser] = useState<User | null>(() => {
+        const saved = localStorage.getItem('user');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                console.error("Failed to parse user", e);
+                return null;
+            }
+        }
+        return null;
+    });
+
+    // Ensure api header is updated if token changes
     useEffect(() => {
         if (token) {
-            const savedUser = localStorage.getItem('user');
-            if (savedUser) {
-                try {
-                    setUser(JSON.parse(savedUser));
-                } catch (e) {
-                    console.error("Failed to parse user", e);
-                }
-            }
             api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         } else {
             delete api.defaults.headers.common['Authorization'];
@@ -62,17 +75,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
     };
 
+    // Theme state - light mode by default
+    const [localDarkMode, setLocalDarkMode] = useState<boolean>(() => {
+        const saved = localStorage.getItem('theme');
+        return saved === 'dark'; // If no saved theme, returns false (light)
+    });
+
+    const isDarkMode = user ? (user.darkMode ?? false) : localDarkMode;
+
+    const toggleTheme = async () => {
+        const nextMode = !isDarkMode;
+        if (user) {
+            try {
+                await api.put('/user/profile', { darkMode: nextMode });
+                updateUser({ ...user, darkMode: nextMode });
+            } catch (e) {
+                console.error("Failed to sync theme with profile", e);
+            }
+        } else {
+            setLocalDarkMode(nextMode);
+            localStorage.setItem('theme', nextMode ? 'dark' : 'light');
+        }
+    };
+
     // Sync theme with document element
     useEffect(() => {
-        if (user && user.darkMode === false) {
-            document.documentElement.classList.add('light-mode');
-        } else {
+        if (isDarkMode) {
+            document.documentElement.classList.add('dark-mode');
             document.documentElement.classList.remove('light-mode');
+        } else {
+            document.documentElement.classList.add('light-mode');
+            document.documentElement.classList.remove('dark-mode');
         }
-    }, [user?.darkMode]);
+    }, [isDarkMode]);
 
     return (
-        <AuthContext.Provider value={{ user, token, login, updateUser, logout, isAuthenticated: !!token }}>
+        <AuthContext.Provider value={{ 
+            user, token, login, updateUser, logout, 
+            isAuthenticated: !!token,
+            isDarkMode,
+            toggleTheme
+        }}>
             {children}
         </AuthContext.Provider>
     );

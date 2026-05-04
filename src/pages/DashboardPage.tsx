@@ -408,7 +408,11 @@ export default function DashboardPage() {
   const filtered = safeArticles
     .filter(a => {
       const matchTopic = isAllSelected || activeTopics.includes(a.topic);
-      const matchSearch = searchQuery.trim() === "" || (a.title?.toLowerCase().includes(searchQuery.toLowerCase()) || a.summary?.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchSearch = searchQuery.trim() === "" || (
+        a.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        a.summary?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        a.source?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
       return matchTopic && matchSearch;
     })
     .sort((a, b) => {
@@ -789,12 +793,12 @@ export default function DashboardPage() {
                         <span className="ml-auto text-[9px] text-neutral-400 truncate max-w-[120px]" style={mono}>{article.source}</span>
                       </div>
                       
-                      {/* Confidence Bar */}
-                      {article.classificationConfidence !== undefined && !article.categorizing && (
-                        <div className="w-full bg-divider-grey h-0.5 mb-2 relative" title={`Category Confidence: ${Math.round(article.classificationConfidence * 100)}%`}>
+                      {/* Reliability Bar */}
+                      {article.reliability !== undefined && !article.categorizing && (
+                        <div className="w-full bg-divider-grey h-0.5 mb-2 relative" title={`Reliability Score: ${article.reliability}/100`}>
                           <div 
-                            className={`absolute left-0 top-0 h-full ${article.classificationConfidence > 0.7 ? 'bg-emerald-500' : article.classificationConfidence > 0.4 ? 'bg-amber-400' : 'bg-editorial-red'}`} 
-                            style={{ width: `${Math.max(5, article.classificationConfidence * 100)}%` }} 
+                            className={`absolute left-0 top-0 h-full ${article.reliability > 65 ? 'bg-emerald-500' : article.reliability >= 55 ? 'bg-amber-400' : 'bg-editorial-red'}`} 
+                            style={{ width: `${Math.max(5, article.reliability)}%` }} 
                           />
                         </div>
                       )}

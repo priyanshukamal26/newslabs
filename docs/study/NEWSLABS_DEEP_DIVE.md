@@ -49,7 +49,7 @@ The NewsLabs problem statement can be summarized as: *"How can we provide a high
 
 Every component of the project is a direct response to a specific pillar of this problem statement:
 
-*   **Pillar 1: Efficient Categorization**: Traditional keyword matching is too fragile (e.g., an article about "Apple" the company vs "Apple" the fruit). NewsLabs uses a **4-Layer NLP Engine** to ensure 99%+ categorization accuracy.
+*   **Pillar 1: Efficient Categorization**: Traditional keyword matching is too fragile (e.g., an article about "Apple" the company vs "Apple" the fruit). NewsLabs uses a **4-Layer NLP Engine** to ensure high-fidelity categorization (approx. 80% accuracy via TF-IDF + Logistic Regression).
 *   **Pillar 2: Meaningful Summarization**: Most "summaries" in standard apps are just the first two sentences of the article. NewsLabs uses **Generative AI (Gemini/Groq)** to rewrite the content into a "Why This Matters" format.
 *   **Pillar 3: The "Always-On" Need**: People miss important news because they don't check their dashboard every hour. NewsLabs solves this via **Omni-Channel Briefings** (Telegram/Discord), pushing the news to where the user already is.
 
@@ -87,7 +87,7 @@ NewsLabs offers several distinct advantages over standard "Readers" and high-end
 | **Summarization Modes** | **3 (Concise, Balanced, Detailed)** | Single Snippet | None | Multi-source |
 | **"Why This Matters"** | **Yes (Native Extraction)** | No | No | Limited |
 | **Deep Insights** | **Yes (5+ Bullet Points)** | No | No | Yes |
-| **Topic Tagging** | **Hybrid NLP (99% Accuracy)** | User-defined folders | Source-based | Neural |
+| **Topic Tagging** | **Hybrid NLP (~80% Accuracy)** | User-defined folders | Source-based | Neural |
 
 #### **Table 2: Automation & Delivery**
 | Feature | **NewsLabs** | Standard RSS Apps | Social Media |
@@ -145,7 +145,7 @@ The `AiService` routes the request to the user's preferred provider (Groq/Gemini
 
 ### **Step 4: Omni-Channel Dispatch (Telegram Automation)**
 NewsLabs solves the "Active User" problem through extreme automation:
-- **Scheduled Briefs**: The `SchedulerService` ranks all articles from the last 24 hours.
+- **Scheduled Briefs**: The `SchedulerService` ranks all articles from the last 24 hours (with a fallback to the 72-hour archive if recent volume is low).
 - **Intelligent Selection**: It picks the top 10 articles that match the user's "Interests" profile.
 - **Telegram/Discord Payload**: It formats the data into a high-signal brief (Clean HTML for Telegram, Rich Embeds for Discord) and pushes it automatically at pre-set slots (Morning/Evening).
 

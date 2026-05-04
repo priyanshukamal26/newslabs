@@ -35,6 +35,7 @@ async function main() {
                 "avatarUrl" TEXT,
                 "darkMode" BOOLEAN NOT NULL DEFAULT true,
                 "aiProvider" TEXT NOT NULL DEFAULT 'hybrid',
+                "summaryMode" TEXT NOT NULL DEFAULT 'balanced',
                 "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 "topics" TEXT NOT NULL DEFAULT '[]',
                 "totalReads" INTEGER NOT NULL DEFAULT 0,
@@ -210,6 +211,12 @@ async function main() {
                 "articleId" TEXT NOT NULL,
                 "readAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 "timeSpent" INTEGER NOT NULL DEFAULT 0,
+                "estimatedReadSecs" INTEGER NOT NULL DEFAULT 0,
+                "sentiment" TEXT NOT NULL DEFAULT '',
+                "source" TEXT NOT NULL DEFAULT '',
+                "topic" TEXT NOT NULL DEFAULT '',
+                "title" TEXT NOT NULL DEFAULT '',
+                "link" TEXT NOT NULL DEFAULT '',
                 CONSTRAINT "ReadHistory_pkey" PRIMARY KEY ("id"),
                 CONSTRAINT "ReadHistory_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE
             )
@@ -238,6 +245,63 @@ async function main() {
         console.log('   ✅ Notification table created');
     } else {
         console.log('\n⏭️  Notification table already exists');
+    }
+
+    // ─── UserNotificationSettings ────────────────────────
+    if (!existing.has('UserNotificationSettings')) {
+        console.log('\n🆕 Creating table: UserNotificationSettings');
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE "UserNotificationSettings" (
+                "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+                "userId" TEXT NOT NULL,
+                "telegramChatId" TEXT,
+                "telegramUserId" TEXT,
+                "telegramEnabled" BOOLEAN NOT NULL DEFAULT false,
+                "telegramConnectToken" TEXT,
+                "telegramConnectExpiresAt" TIMESTAMP(3),
+                "discordWebhookUrl" TEXT,
+                "discordEnabled" BOOLEAN NOT NULL DEFAULT false,
+                "activeSlots" TEXT NOT NULL DEFAULT '[]',
+                "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                "updatedAt" TIMESTAMP(3) NOT NULL,
+                CONSTRAINT "UserNotificationSettings_pkey" PRIMARY KEY ("id"),
+                CONSTRAINT "UserNotificationSettings_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE
+            )
+        `);
+        await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX "UserNotificationSettings_userId_key" ON "UserNotificationSettings"("userId")`);
+        await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX "UserNotificationSettings_telegramConnectToken_key" ON "UserNotificationSettings"("telegramConnectToken")`);
+        console.log('   ✅ UserNotificationSettings table created');
+    } else {
+        console.log('\n⏭️  UserNotificationSettings table already exists');
+    }
+
+    // ─── NotificationLog ─────────────────────────────────
+    if (!existing.has('NotificationLog')) {
+        console.log('\n🆕 Creating table: NotificationLog');
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE "NotificationLog" (
+                "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+                "settingsId" TEXT NOT NULL,
+                "userId" TEXT NOT NULL,
+                "platform" TEXT NOT NULL,
+                "slot" TEXT NOT NULL,
+                "slotLabel" TEXT NOT NULL,
+                "sentAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                "articleIds" TEXT NOT NULL,
+                "articleTitles" TEXT NOT NULL,
+                "articleLinks" TEXT NOT NULL,
+                "articleSources" TEXT NOT NULL,
+                "articleTopics" TEXT NOT NULL,
+                "selectionReason" TEXT NOT NULL,
+                "success" BOOLEAN NOT NULL,
+                "errorMessage" TEXT,
+                CONSTRAINT "NotificationLog_pkey" PRIMARY KEY ("id"),
+                CONSTRAINT "NotificationLog_settingsId_fkey" FOREIGN KEY ("settingsId") REFERENCES "UserNotificationSettings"("id") ON DELETE CASCADE ON UPDATE CASCADE
+            )
+        `);
+        console.log('   ✅ NotificationLog table created');
+    } else {
+        console.log('\n⏭️  NotificationLog table already exists');
     }
 
     // ─── Trend ───────────────────────────────────────────

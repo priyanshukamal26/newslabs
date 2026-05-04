@@ -34,3 +34,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+docs/nlp_classification_proof.ipynb
+docs/NLP_PROOF.md

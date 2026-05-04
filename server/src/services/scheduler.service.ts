@@ -212,23 +212,17 @@ async function runSlot(slot: NotificationSlot): Promise<void> {
 // ── Daily cleanup ─────────────────────────────────────────────────────────────
 
 async function purgeOldLogs(): Promise<void> {
-    // Delete all logs from before today 00:00 IST
-    // IST = UTC+5:30, so start of today IST = yesterday 18:30 UTC
-    const now = new Date();
-    const startOfTodayIST = new Date(now);
-    startOfTodayIST.setUTCHours(18, 30, 0, 0); // 18:30 UTC = 00:00 IST next day
-    if (now.getUTCHours() >= 18 && now.getUTCMinutes() >= 30) {
-        // already past 00:00 IST today — purge anything before today 18:30 UTC
-    } else {
-        // before 00:00 IST today — purge anything before yesterday 18:30 UTC
-        startOfTodayIST.setUTCDate(startOfTodayIST.getUTCDate() - 1);
-    }
+    // Retention Policy: Store last 3 days (72 hours) of brief data.
+    // Anything older than 72 hours from now is purged.
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
 
     try {
         const result = await prisma.notificationLog.deleteMany({
-            where: { sentAt: { lt: startOfTodayIST } },
+            where: { sentAt: { lt: threeDaysAgo } },
         });
-        console.log(`[scheduler] Purged ${result.count} old notification log rows.`);
+        if (result.count > 0) {
+            console.log(`[scheduler] Purged ${result.count} notification logs older than 3 days.`);
+        }
     } catch (err: any) {
         console.error('[scheduler] Log purge failed:', err.message);
     }

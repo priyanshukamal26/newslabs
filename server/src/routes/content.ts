@@ -15,35 +15,32 @@ const prisma = new PrismaClient();
 
 const categoryKeywords: Record<string, string[]> = {
     "AI & ML": ["ai", "artificial intelligence", "machine learning", "deep learning", "neural", "llm", "gpt", "chatgpt", "openai", "anthropic", "gemini", "copilot", "model", "transformer", "groq", "claude", "diffusion", "generative", "nlp", "computer vision", "training", "inference", "agent", "rag", "prompt", "chatbot", "automation", "algorithm", "dataset", "mistral", "perplexity", "stable diffusion", "midjourney", "text to image"],
-    "Web Dev": ["react", "nextjs", "next.js", "angular", "vue", "svelte", "javascript", "typescript", "css", "html", "frontend", "backend", "fullstack", "node", "deno", "bun", "api", "rest", "graphql", "web dev", "framework", "tailwind", "webpack", "vite", "web app", "web application", "browser", "chrome extension", "node.js", "npm", "yarn", "pnpm", "eslint", "prettier"],
-    "Science": ["science", "research", "study", "discovery", "physics", "chemistry", "biology", "genome", "dna", "evolution", "experiment", "laboratory", "scientist", "nature", "cell", "quantum", "molecule", "fossil", "species", "organism", "ecology", "marine", "conservation", "biodiversity", "neuroscience", "cognitive", "gene", "protein", "bacteria", "virus", "mutation", "enzyme", "microscope", "telescope", "particle", "radiation", "element", "coral", "forest", "extinct", "mammal", "reptile", "amphibian", "insect", "bird", "wildlife", "animal", "plant", "tree", "ocean", "sea"],
+
+    "Science & Space": ["science", "research", "study", "discovery", "physics", "chemistry", "biology", "genome", "dna", "evolution", "experiment", "laboratory", "scientist", "nature", "cell", "quantum", "molecule", "fossil", "species", "organism", "ecology", "marine", "conservation", "biodiversity", "neuroscience", "cognitive", "gene", "protein", "bacteria", "virus", "mutation", "enzyme", "microscope", "telescope", "particle", "radiation", "element", "coral", "forest", "extinct", "mammal", "reptile", "amphibian", "insect", "bird", "wildlife", "animal", "plant", "tree", "ocean", "sea", "nasa", "spacex", "rocket", "satellite", "mars", "moon", "orbit", "astronaut", "galaxy", "asteroid", "launch", "cosmic", "starship", "isro", "chandrayaan", "gaganyaan", "jwst", "james webb", "hubble", "black hole", "supernova", "comet", "solar system", "exoplanet", "iss", "space station", "spacewalk", "lunar"],
     "Startups": ["startup", "founder", "venture", "funding", "seed", "series a", "series b", "ipo", "valuation", "unicorn", "accelerator", "incubator", "entrepreneur", "pitch", "y combinator", "techstars", "angel investor", "pre-seed", "series c", "fundraise", "raise", "mvp", "product market fit", "bootstrapped"],
-    "Crypto": ["crypto", "bitcoin", "ethereum", "blockchain", "defi", "nft", "token", "web3", "mining", "wallet", "solana", "binance", "coinbase", "stablecoin", "dao", "token price", "crypto market", "digital assets", "coindesk", "web3 startup", "btc", "eth", "altcoin", "exchange", "trading", "decentralized", "ledger", "hash rate", "proof of stake", "proof of work", "metaverse", "polygon", "chainlink", "ripple", "xrp", "dogecoin"],
-    "Design": ["design", "ui design", "ux design", "figma", "interface", "typography", "color palette", "layout", "prototype", "wireframe", "accessibility", "aesthetic", "branding", "logo", "graphic design", "product design", "user experience", "user interface", "usability", "creative direction", "illustration", "motion design", "visual identity", "design system", "component library", "sketch", "adobe xd"],
-    "DevOps": ["devops", "docker", "kubernetes", "k8s", "ci/cd", "pipeline", "deploy", "infrastructure", "terraform", "aws", "azure", "gcp", "cloud", "monitoring", "container", "linux", "nginx", "serverless", "microservices", "gitops", "helm", "ansible", "prometheus", "grafana", "observability", "sre", "site reliability", "incident", "on-call", "load balancer", "cloudflare", "vercel", "netlify", "heroku", "render", "supabase"],
+
     "Security": ["security", "hack", "breach", "vulnerability", "malware", "phishing", "ransomware", "encryption", "firewall", "cyber", "privacy", "zero-day", "exploit", "password", "authentication", "scam", "fraud", "data leak", "data breach", "spyware", "ddos", "botnet", "social engineering", "2fa", "mfa", "ssl", "tls", "certificate", "vpn", "threat intelligence", "penetration testing", "bug bounty", "cve", "patch", "identity theft", "surveillance", "backdoor", "trojan"],
     "Politics": ["politics", "election", "government", "congress", "senate", "president", "legislation", "policy", "democrat", "republican", "vote", "campaign", "regulation", "law", "court", "parliament", "biden", "trump", "minister", "diplomatic", "sanctions", "treaty", "nato", "un", "united nations", "geopolitics", "summit", "referendum", "coalition", "opposition", "ruling party", "white house", "kremlin"],
-    "Business": ["business", "revenue", "profit", "market", "stock", "earnings", "ceo", "acquisition", "merger", "layoff", "company", "enterprise", "corporate", "industry", "economy", "trade", "gdp", "sensex", "nifty", "inflation", "bank", "rbi", "fed", "interest rate", "fiscal", "quarterly results", "wall street", "nasdaq", "nyse", "shares", "dividend", "ipo", "deal", "partnership", "contract", "supply chain", "manufacturing", "retail", "ecommerce", "amazon", "apple", "google", "microsoft", "meta", "tesla"],
+    "Business & Finance": ["business", "revenue", "profit", "market", "stock", "earnings", "ceo", "acquisition", "merger", "layoff", "company", "enterprise", "corporate", "industry", "economy", "trade", "gdp", "sensex", "nifty", "inflation", "bank", "rbi", "fed", "interest rate", "fiscal", "quarterly results", "wall street", "nasdaq", "nyse", "shares", "dividend", "ipo", "deal", "partnership", "contract", "supply chain", "manufacturing", "retail", "ecommerce", "amazon", "apple", "google", "microsoft", "meta", "tesla"],
     "Health": ["health", "medical", "doctor", "hospital", "disease", "treatment", "vaccine", "drug", "fda", "clinical", "patient", "diagnosis", "surgery", "mental health", "wellness", "fitness", "cancer", "covid", "pandemic", "symptoms", "therapy", "medicine", "pharmaceutical", "who", "world health organization", "cdc", "epidemic", "outbreak", "nutrition", "diet", "obesity", "diabetes", "heart", "lung", "brain", "blood", "chronic", "rare disease", "drug trial", "gene therapy"],
     "Sports": ["sports", "nba", "nfl", "mlb", "soccer", "football", "basketball", "tennis", "golf", "olympics", "championship", "tournament", "athlete", "coach", "game", "match", "score", "cricket", "ipl", "bcci", "kohli", "dhoni", "rohit", "messi", "ronaldo", "fifa", "wpl", "formula 1", "f1", "ufc", "boxing", "wrestling", "rugby", "hockey", "badminton", "marathon", "cycling", "swimming", "gymnastics", "league", "cup", "trophy", "semifinal", "final", "quarterfinal", "goal", "wicket", "innings", "penalty", "transfer window", "squad", "manager"],
     "Entertainment": ["movie", "film", "tv", "show", "netflix", "streaming", "music", "album", "concert", "celebrity", "actor", "director", "oscar", "emmy", "gaming", "playstation", "xbox", "nintendo", "bollywood", "hollywood", "actress", "cinema", "box office", "trailer", "series", "episode", "season", "premiere", "review", "award", "grammy", "bafta", "cannes", "sundance", "anime", "manga", "video game", "esports", "twitch", "youtube", "spotify", "apple music", "record label", "pop star", "rapper", "band", "debut"],
-    "Climate": ["climate", "carbon", "emissions", "renewable", "solar", "wind", "energy", "sustainability", "pollution", "warming", "environmental", "green", "electric vehicle", "ev", "battery", "weather", "storm", "wildfire", "flood", "drought", "heatwave", "glacier", "arctic", "deforestation", "biodiversity", "net zero", "carbon footprint", "fossil fuel", "coal", "oil", "gas", "green energy", "paris agreement", "cop", "ipcc", "methane", "ozone", "sea level"],
-    "Space": ["space", "nasa", "spacex", "rocket", "satellite", "mars", "moon", "orbit", "astronaut", "telescope", "galaxy", "asteroid", "launch", "cosmic", "starship", "isro", "chandrayaan", "gaganyaan", "jwst", "james webb", "hubble", "black hole", "supernova", "comet", "solar system", "exoplanet", "iss", "space station", "spacewalk", "lunar"],
+    "Climate & Environment": ["climate", "carbon", "emissions", "renewable", "solar", "wind", "energy", "sustainability", "pollution", "warming", "environmental", "green", "electric vehicle", "ev", "battery", "weather", "storm", "wildfire", "flood", "drought", "heatwave", "glacier", "arctic", "deforestation", "biodiversity", "net zero", "carbon footprint", "fossil fuel", "coal", "oil", "gas", "green energy", "paris agreement", "cop", "ipcc", "methane", "ozone", "sea level"],
+
     "India": ["india", "indian", "modi", "narendra modi", "pm modi", "bjp", "bharatiya janata party", "congress", "indian national congress", "rahul gandhi", "sonia gandhi", "priyanka gandhi", "amit shah", "rajnath singh", "nirmala sitharaman", "s jaishankar", "delhi", "new delhi", "mumbai", "bengaluru", "bangalore", "chennai", "kolkata", "hyderabad", "pune", "rupee", "rbi", "niti aayog", "finance ministry", "tata group", "reliance", "adani group", "infosys", "wipro", "tcs", "hdfc", "sbi", "bcci", "virat kohli", "rohit sharma", "ms dhoni", "team india", "bollywood", "tollywood", "indian cinema"],
-    "World": ["war", "conflict", "attack", "strike", "missile", "troops", "army", "military", "ceasefire", "invasion", "bombing", "airstrike", "refugee", "displaced", "humanitarian", "crisis", "famine", "drought", "protest", "riot", "unrest", "revolution", "coup", "iran", "russia", "ukraine", "israel", "gaza", "china", "taiwan", "korea", "north korea", "middle east", "africa", "europe", "latin america", "southeast asia", "diplomat", "embassy", "foreign minister", "bilateral", "trade war", "sanctions", "nato", "g7", "g20", "un security council", "peacekeeping"],
+    "World Affairs": ["war", "conflict", "attack", "strike", "missile", "troops", "army", "military", "ceasefire", "invasion", "bombing", "airstrike", "refugee", "displaced", "humanitarian", "crisis", "famine", "drought", "protest", "riot", "unrest", "revolution", "coup", "iran", "russia", "ukraine", "israel", "gaza", "china", "taiwan", "korea", "north korea", "middle east", "africa", "europe", "latin america", "southeast asia", "diplomat", "embassy", "foreign minister", "bilateral", "trade war", "sanctions", "nato", "g7", "g20", "un security council", "peacekeeping"],
     "General": ["report", "exclusive", "reveal", "investigation", "analysis", "opinion", "comment", "interview", "profile", "obituary", "correction", "update", "breaking", "latest"]
 };
 
 const sourceBias: Record<string, string> = {
-    "sciencedaily": "Science",
-    "science daily": "Science",
+    "sciencedaily": "Science & Space",
+    "science daily": "Science & Space",
     "espn": "Sports",
     "techcrunch": "AI & ML",
-    "coindesk": "Crypto",
-    "cointelegraph": "Crypto",
-    "bloomberg": "Business",
-    "financial times": "Business",
-    "forbes": "Business",
+
+    "bloomberg": "Business & Finance",
+    "financial times": "Business & Finance",
+    "forbes": "Business & Finance",
     "wired": "AI & ML",
     "the verge": "AI & ML",
     "the hindu": "India",
@@ -55,7 +52,7 @@ const sourceBias: Record<string, string> = {
 };
 
 const NLP_CONFIDENCE_THRESHOLD = 0.25;
-const NLP_SOFT_CATEGORIES = new Set(["Crypto", "DevOps", "Design", "Web Dev"]);
+const NLP_SOFT_CATEGORIES = new Set([]);
 const NLP_SOFT_THRESHOLD = 0.40;
 
 // ── NLP-powered article classification ────────────────────────────────────────
@@ -103,7 +100,7 @@ export async function contentRoutes(server: FastifyInstance) {
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 
-    const updateFeeds = async (feedSources: Array<{ url: string; sourceType: 'system' | 'user'; userId?: string; category?: string | null }>) => {
+    const updateFeeds = async (feedSources: Array<{ url: string; sourceType: 'system' | 'user'; userId?: string; category?: string | null; reliability?: number }>) => {
         const feeds = feedSources;
         const newArticleIds: string[] = [];
 
@@ -145,11 +142,11 @@ export async function contentRoutes(server: FastifyInstance) {
                         const text = item.title || '';
                         const body = item.contentSnippet || item.content || '';
 
-                        // NLP enrichment (synchronous, sub-millisecond)
+                        // NLP enrichment (async/sync mix)
                         const classification = categorizeArticle(text, body, feedTitle);
-                        const sentimentResult = nlpService.analyzeSentiment(`${text} ${body}`);
+                        const sentimentResult = await nlpService.analyzeSentiment(`${text} ${body}`);
                         const opinionResult = nlpService.detectOpinionVsFact(text, body);
-                        const reliabilityResult = nlpService.scoreReliability(text, body, feedTitle || item.source || '', item.pubDate);
+                        const reliabilityResult = nlpService.scoreReliability(text, body, feedTitle || item.source || '', item.pubDate, feedSource.reliability);
 
                         let biasIndicator: 'Neutral' | 'Slightly Opinionated' | 'Strongly Opinionated' = 'Neutral';
                         if (opinionResult.type === 'Opinion') {
@@ -207,15 +204,15 @@ export async function contentRoutes(server: FastifyInstance) {
 
     server.get('/feed', async (request: FastifyRequest, reply: FastifyReply) => {
         const userId = getUserIdFromRequest(request);
-        let userFeeds: Array<{ url: string; category: string | null; isActive: boolean }> = [];
+        let userFeeds: Array<{ url: string; category: string | null; isActive: boolean; reliability: number }> = [];
         if (userId) {
             await ensureUserFeedsInitialized(userId);
-            userFeeds = await prisma.userFeed.findMany({ where: { userId }, select: { url: true, category: true, isActive: true } });
+            userFeeds = await prisma.userFeed.findMany({ where: { userId }, select: { url: true, category: true, isActive: true, reliability: true } });
         }
         
         const feedSources = userId
-            ? userFeeds.filter(f => f.isActive).map(feed => ({ url: feed.url, sourceType: 'user' as const, userId: userId || undefined, category: feed.category }))
-            : store.getSystemFeeds().map(feed => ({ url: feed.url, sourceType: 'system' as const, category: feed.category }));
+            ? userFeeds.filter(f => f.isActive).map(feed => ({ url: feed.url, sourceType: 'user' as const, userId: userId || undefined, category: feed.category, reliability: feed.reliability }))
+            : store.getSystemFeeds().map(feed => ({ url: feed.url, sourceType: 'system' as const, category: feed.category, reliability: feed.reliability }));
 
         // Always fire-and-forget — articles stream in progressively as feeds resolve.
         // The frontend polls every 2s when the store is empty, so users see articles
@@ -232,17 +229,17 @@ export async function contentRoutes(server: FastifyInstance) {
 
     server.post('/refresh', async (request: FastifyRequest, reply: FastifyReply) => {
         const userId = getUserIdFromRequest(request);
-        let userFeeds: Array<{ url: string; category: string | null; isActive: boolean }> = [];
+        let userFeeds: Array<{ url: string; category: string | null; isActive: boolean; reliability: number }> = [];
         if (userId) {
             await ensureUserFeedsInitialized(userId);
-            userFeeds = await prisma.userFeed.findMany({ where: { userId }, select: { url: true, category: true, isActive: true } });
+            userFeeds = await prisma.userFeed.findMany({ where: { userId }, select: { url: true, category: true, isActive: true, reliability: true } });
         }
         
         console.log(`[refresh] Triggered by userId: ${userId}, loaded ${userFeeds.length} user feeds.`);
 
         const feedSources = userId
-            ? userFeeds.filter(f => f.isActive).map(feed => ({ url: feed.url, sourceType: 'user' as const, userId: userId || undefined, category: feed.category }))
-            : store.getSystemFeeds().map(feed => ({ url: feed.url, sourceType: 'system' as const, category: feed.category }));
+            ? userFeeds.filter(f => f.isActive).map(feed => ({ url: feed.url, sourceType: 'user' as const, userId: userId || undefined, category: feed.category, reliability: feed.reliability }))
+            : store.getSystemFeeds().map(feed => ({ url: feed.url, sourceType: 'system' as const, category: feed.category, reliability: feed.reliability }));
 
         console.log(`[refresh] Built feedSources array of length: ${feedSources.length}`);
 
@@ -443,7 +440,7 @@ export async function contentRoutes(server: FastifyInstance) {
         }
 
         const articles = store.getArticles();
-        const categoriesOfInterest = ['AI & ML', 'Science', 'India'];
+        const categoriesOfInterest = ['AI & ML', 'Science & Space', 'India'];
         const selectedArticles = [];
 
         for (const category of categoriesOfInterest) {
@@ -468,9 +465,9 @@ export async function contentRoutes(server: FastifyInstance) {
             cachedBrief = { articles: selectedArticles, timestamp: now };
         } else {
             selectedArticles.push(
-                { topic: "AI", title: "Wait for feed to load...", summary: "Fetching the latest news. Please refresh." },
-                { topic: "Science", title: "Wait for feed to load...", summary: "Fetching the latest news. Please refresh." },
-                { topic: "Tech", title: "Wait for feed to load...", summary: "Fetching the latest news. Please refresh." }
+                { topic: "AI & ML", title: "Wait for feed to load...", summary: "Fetching the latest news. Please refresh." },
+                { topic: "Science & Space", title: "Wait for feed to load...", summary: "Fetching the latest news. Please refresh." },
+                { topic: "Technology", title: "Wait for feed to load...", summary: "Fetching the latest news. Please refresh." }
             );
         }
 

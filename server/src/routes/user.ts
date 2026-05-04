@@ -47,6 +47,7 @@ export async function userRoutes(server: FastifyInstance) {
                 url: feed.url,
                 displayName: feed.name,
                 category: feed.category,
+                reliability: feed.reliability,
                 isActive: true,
             })),
             skipDuplicates: true,
@@ -237,8 +238,9 @@ export async function userRoutes(server: FastifyInstance) {
             url: z.string().url(),
             displayName: z.string().min(1).max(120).optional(),
             category: z.string().max(60).optional().nullable(),
+            reliability: z.number().min(1).max(10).optional(),
         });
-        const { url, displayName, category } = schema.parse(request.body);
+        const { url, displayName, category, reliability } = schema.parse(request.body);
 
         const previewItems = await rssService.fetchFeed(url);
         if (!previewItems.length) {
@@ -250,6 +252,7 @@ export async function userRoutes(server: FastifyInstance) {
             update: {
                 displayName: displayName || previewItems[0]?.source || 'Custom Feed',
                 category: category || null,
+                reliability: reliability ?? 5,
                 isActive: true,
             },
             create: {
@@ -257,6 +260,7 @@ export async function userRoutes(server: FastifyInstance) {
                 url,
                 displayName: displayName || previewItems[0]?.source || 'Custom Feed',
                 category: category || null,
+                reliability: reliability ?? 5,
                 isActive: true,
             },
         });
@@ -271,6 +275,7 @@ export async function userRoutes(server: FastifyInstance) {
             url: z.string().url().optional(),
             displayName: z.string().min(1).max(120).optional(),
             category: z.string().max(60).nullable().optional(),
+            reliability: z.number().min(1).max(10).optional(),
             isActive: z.boolean().optional(),
         });
         const payload = schema.parse(request.body);
@@ -349,6 +354,7 @@ export async function userRoutes(server: FastifyInstance) {
                 url: feed.url,
                 displayName: feed.title,
                 category: feed.category,
+                reliability: 5,
                 isActive: true,
             })),
             skipDuplicates: true,

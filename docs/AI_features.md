@@ -15,20 +15,20 @@ NewsLabs does not rely on a single AI model. Instead, it uses a **Layered Hybrid
 When an article enters the system, it passes through these layers in **under 50ms**.
 
 ### Layer 0: Source Metadata (Fast Track)
-- **Mechanism**: The system maintains a `sourceBias` map (e.g., `TechCrunch -> AI & ML`, `ESPN -> Sports`).
+- **Mechanism**: The system maintains a `sourceBias` map (e.g., `TechCrunch -> AI & ML`, `ESPN -> Sports`, `The Hindu -> India`).
 - **Why?**: If a source is dedicated to a niche, it's 99% likely the article belongs there. This bypasses complex analysis for known entities.
 
 ### Layer 1: Keyword Heuristics & Secondary Tagging
 - **Mechanism**: A library of 100+ "weighted" keywords per category.
 - **Role**: This layer handles niche topics that are too specific for the general statistical model.
-- **Example**: "Kubernetes" or "Docker" triggers a +1 score for **DevOps**. "Bitcoin" or "Ethereum" triggers **Crypto**.
+- **Example**: "Neural network" or "Large Language Model" triggers a +1 score for **AI & ML**. "NASA" or "ISRO" triggers **Space**.
 - **Output**: These are added as "Secondary Tags" to enrich the article beyond its primary category.
 
 ### Layer 2: Statistical NLP Classifier (The "Brain")
 - **Mechanism**: **TF-IDF (Term Frequency-Inverse Document Frequency)** combined with **Logistic Regression**.
 - **Model Training**: Trained on thousands of articles to recognize patterns across 9 **Primary Categories**:
     - *Technology, Business & Finance, World Affairs, Science & Space, Health, Sports, Entertainment, Climate & Environment, General*.
-- **Confidence Thresholds**: The engine requires a minimum **0.25** confidence to assign a primary category.
+- **Confidence Thresholds**: The engine requires a minimum **0.25** confidence to assign a primary category. Accuracy is approx. **79%** based on recent model evaluation (`nlp_meta.json`).
 
 ### Layer 3: Catch-all Fallback
 - Remaining articles are safely bucketed into **World** or **General** based on secondary entity detection.
@@ -37,9 +37,9 @@ When an article enters the system, it passes through these layers in **under 50m
 
 ## 3. Specialized NLP Analysts
 
-### Sentiment Analysis (Lexicon Engine)
-- **Working**: Uses a VADER-style lexicon. It scans for positive/negative "tokens" and accounts for **negations** (e.g., "not good" is flipped to negative).
-- **Output**: Returns a score from -1 to +1 and identifies "intensity signals" (the specific words that caused the sentiment).
+### Sentiment Analysis (Hybrid Engine)
+- **Working**: Primarily uses a **DistilBERT Transformer** (sst-2) via Xenova for high-accuracy tone detection. It falls back to a VADER-style lexicon for instant analysis if the transformer is loading. Accounts for **negations** (e.g., "not good" is flipped to negative).
+- **Output**: Returns a score from -1 to +1 and identifies "intensity signals" (the specific words that caused the sentiment in lexicon mode).
 
 ### Opinion vs. Fact Detection
 - **Mechanism**: Heuristic signal detection.
@@ -57,7 +57,7 @@ When an article enters the system, it passes through these layers in **under 50m
 
 ## 4. Generative AI Strategy (The "Summarizer")
 
-NewsLabs supports **Groq (Llama 3.1)** and **Gemini (3 Flash)**.
+NewsLabs supports **Groq (Llama 3.1)** and **Google Gemini Flash**.
 
 ### The Hybrid Provider Logic
 - **Primary**: Groq (for speed).
@@ -80,7 +80,7 @@ Return ONLY valid JSON:
   "summary": "Specific informative text...",
   "insights": ["Insight 1", "Insight 2", ...],
   "why": "2-sentence significance explanation",
-  "topic": "Selected from allowed labels"
+  "topic": "Selected from: Technology, Business & Finance, World Affairs, Science & Space, Health, Sports, Entertainment, Climate & Environment, General, India, AI & ML, Startups, Security"
 }
 ```
 **Why this works**: By forcing JSON, we ensure the "Insights" and "Why" sections are always extractable for the UI cards.
@@ -94,7 +94,8 @@ Return ONLY valid JSON:
 - **Logic**: It filters out "stopwords" (the, and, for) and identifies clusters of related terms to show what's globally trending.
 
 ### Daily Brief Generation
-- **Working**: Uses a weighted random selection from "High Reliability" articles across the user's favorite topics (AI, Science, India).
+- **Working**: Uses a **ranked selection** (not random) from "High Reliability" articles across the user's favorite topics (AI & ML, Science, India).
+- **Archive Fallback**: If fewer than 10 articles are found in the last 24h, the system pulls from the 72-hour archive to ensure a full brief.
 - **Caching**: Results are cached for 6 hours to prevent redundant LLM calls.
 
 ---
@@ -106,7 +107,7 @@ NewsLabs doesn't just send all news; it uses an **automated selection algorithm*
 ### The Selection Algorithm (Reliability-Weighted)
 When the `SchedulerService` triggers a delivery slot (e.g., Morning Brief), it ranks articles using a weighted formula:
 - **Reliability (50%)**: Articles with higher trust scores (from the NLP engine) are prioritized.
-- **Topic Match (40%)**: Articles matching the user's selected interests (AI, Science, India, etc.).
+- **Topic Match (40%)**: Articles matching the user's selected interests (AI & ML, Science, India, etc.).
 - **Recency (10%)**: A decay factor that favors articles published in the last 12-24 hours.
 
 ### Automated Formatting

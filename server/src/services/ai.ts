@@ -71,7 +71,7 @@ Return only valid JSON with exactly this structure:
     "Insight 3"
   ],
   "why": "A 1-sentence explanation of why this article matters.",
-  "topic": "Exactly one from: AI & ML, Web Dev, Science, Startups, Crypto, Design, DevOps, Security, Politics, Business, Health, Sports, Entertainment, Climate, Space, India, World, General"
+  "topic": "Exactly one from: Technology, Business & Finance, World Affairs, Science & Space, Health, Sports, Entertainment, Climate & Environment, General, India, AI & ML, Startups, Security"
 }
 
 Important:
@@ -107,7 +107,7 @@ Return only valid JSON with exactly this structure:
     "Insight 5"
   ],
   "why": "A 2-sentence explanation of why this article matters.",
-  "topic": "Exactly one from: AI & ML, Web Dev, Science, Startups, Crypto, Design, DevOps, Security, Politics, Business, Health, Sports, Entertainment, Climate, Space, India, World, General"
+  "topic": "Exactly one from: Technology, Business & Finance, World Affairs, Science & Space, Health, Sports, Entertainment, Climate & Environment, General, India, AI & ML, Startups, Security"
 }
 
 Important:
@@ -144,7 +144,7 @@ Return only valid JSON with exactly this structure:
     "Insight 5"
   ],
   "why": "A 2-3 sentence explanation of why this article matters.",
-  "topic": "Exactly one from: AI & ML, Web Dev, Science, Startups, Crypto, Design, DevOps, Security, Politics, Business, Health, Sports, Entertainment, Climate, Space, India, World, General"
+  "topic": "Exactly one from: Technology, Business & Finance, World Affairs, Science & Space, Health, Sports, Entertainment, Climate & Environment, General, India, AI & ML, Startups, Security"
 }
 
 Important:

@@ -14,16 +14,16 @@
 ---
 
 ## 1. 🧠 Improving Categorization Further
-**Status:** 🟡 In Progress (v2.0 shipped hybrid NLP engine; further improvements planned)
+**Status:** 🟡 In Progress (v3.3 shipped hybrid NLP engine; further improvements planned)
 
 ### Why
-The current Naive Bayes NLP model is trained at server startup using a static `training.json` corpus. As feeds grow in variety, accuracy will plateau. The next step is to move toward a more contextual, trainable model.
+The current **Logistic Regression** NLP model is trained at server startup using a static `training.json` corpus. As feeds grow in variety, accuracy will plateau. The next step is to move toward a more contextual, trainable model.
 
 ### What to Build
 - **Weighted TF-IDF scoring** over keyword matching — gives rarer, more specific keywords higher weight than common ones
 - **Active learning loop** — track when users click "Wrong Category" and feed that back into training data
 - **Per-category precision/recall tracking** — a lightweight test harness that runs on startup and logs category accuracy to the console
-- **Transformer embeddings (future)** — Replace Naive Bayes with sentence embeddings (e.g., `@xenova/transformers` running in Node) for contextual similarity matching. Feasibility: medium (adds ~50MB to server bundle)
+- **Transformer embeddings (future)** — Replace Logistic Regression with sentence embeddings (e.g., `@xenova/transformers` running in Node) for contextual similarity matching. Feasibility: medium (adds ~50MB to server bundle). *Note: DistilBERT is already used for sentiment analysis.*
 
 ### Files to Touch
 - `server/src/routes/content.ts` — `categorizeArticle()` function, `categoryKeywords`, training init
@@ -160,7 +160,7 @@ Articles from the `India`, `World`, `Politics`, `Business`, `Science`, `Space`, 
 ### Notes
 - For PDF generation: use `jsPDF` on the frontend (no server-side rendering needed)
 - For exam-style summaries: when clicked, trigger the existing `/api/content/analyze` endpoint — no extra AI cost
-- Period filtering works on `pubDate` — ensure robust date parsing (existing bug already fixed in v1.2.0)
+- Period filtering works on `pubDate` — ensure robust date parsing (existing bug already fixed in v3.2.0)
 
 ---
 
@@ -173,4 +173,4 @@ Articles from the `India`, `World`, `Politics`, `Business`, `Science`, `Space`, 
 > **Keep the keyword engine fast.** It runs on every article at feed fetch time. Avoid async operations or external API calls inside `categorizeArticle()`.
 
 > [!TIP]
-> **The training.json corpus is the most impactful thing to expand.** Every 50 good labelled examples measurably improves Naive Bayes accuracy. When you find a misclassified article, add its title as a training example.
+> **The training.json corpus is the most impactful thing to expand.** Every 50 good labelled examples measurably improves Logistic Regression accuracy. When you find a misclassified article, add its title as a training example.

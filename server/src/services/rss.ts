@@ -1,6 +1,8 @@
 /// <reference path="../types.d.ts" />
 import Parser from 'rss-parser';
 
+import he from 'he';
+
 const parser = new Parser();
 
 export interface FeedItem {
@@ -44,10 +46,10 @@ export class RssService {
             
             console.log(`Fetched ${feed.items.length} items from ${feed.title || url}`);
             return feed.items.map((item: any) => ({
-                title: item.title,
+                title: item.title ? he.decode(item.title) : undefined,
                 link: item.link,
                 content: item.content,
-                contentSnippet: item.contentSnippet,
+                contentSnippet: item.contentSnippet ? he.decode(item.contentSnippet) : undefined,
                 pubDate: item.pubDate,
                 source: feed.title || 'Unknown Source',
                 sourceUrl: url,

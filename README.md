@@ -72,13 +72,18 @@ NewsLabs uses a **Layered Hybrid Pipeline** to balance speed, cost, and depth:
 When an article enters the system, it passes through these layers in **under 50ms**:
 1.  **Layer 0: Source Metadata (Fast Track)**: Initial weighting based on source bias (e.g., *TechCrunch* → *Technology*).
 2.  **Layer 1: Keyword Heuristics**: Weighted keyword matching against 100+ keywords per category.
-3.  **Layer 2: Statistical Classifier (The "Brain")**: TF-IDF + Logistic Regression trained on 300+ labeled examples across 10+ categories.
+3.  **Layer 2: Statistical Classifier (The "Brain")**: TF-IDF + Logistic Regression trained on 300+ labeled examples across 9 primary categories.
 4.  **Layer 3: Catch-all Fallback**: Geopolitical cues route to *World*, while others land in *General*.
 
 ### **Specialized NLP Analysts**
-- **Sentiment Engine**: VADER-style lexicon analysis with negation handling (e.g., "not good" flipping to negative).
+- **Sentiment Engine**: Dual-stage analysis using a **DistilBERT Transformer** (sst-2) for high-fidelity tone detection, with a VADER-style lexicon fallback for negation handling.
 - **Reliability Scoring**: Heuristic scoring (0-100) based on source reputation, sensationalism detection, and content depth.
 - **Opinion vs. Fact**: Detection of editorial language patterns vs. factual reporting signals.
+
+### **Academic Proof & Methodology**
+For a deep-dive into the training data, model performance, and mathematical proof of our classification engine, see:
+- [**NLP Category Classification Proof (Notebook)**](docs/study/nlp_classification_proof.ipynb) - Full training walkthrough, EDA, and evaluation.
+- [**Technical Methodology Report**](docs/study/NLP_PROOF.md) - Design decisions and "Zero-Dependency" inference architecture.
 
 ---
 
@@ -95,8 +100,8 @@ When a user opens an article:
 
 ### **3. Automated Delivery Lifecycle**
 The `SchedulerService` runs 4 times daily (IST: 6AM, 2PM, 6PM, 10PM):
-- **Filtering**: Selects high-reliability articles from the last 24 hours.
-- **Ranking**: Weighted formula: **Reliability (50%) + Topic Match (40%) + Recency (10%)**.
+- **Filtering**: Selects high-reliability articles from the last 24 hours (with fallback to the 72-hour archive to ensure a full 10-article brief).
+- **Ranking**: Weighted formula: **Reliability (50%) + Topic Match (40%) + Recency (10%)**. Articles are purged after 72 hours.
 - **Formatting**: Dispatches cleaned HTML to Telegram or rich embeds to Discord.
 
 ---
@@ -298,7 +303,7 @@ The backend can be deployed to **Render**, **Railway**, or a VPS. Run `npm run b
 
 ## 🤝 Contributing
 
-Contributions are greatly appreciated. Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+Contributions are greatly appreciated. Please see [CONTRIBUTING.md](docs/CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
 
 ---
 
@@ -323,4 +328,4 @@ Distributed under the **ISC License**. See `LICENSE` for more information.
 - Twitter: [@priyanshu_kamal](https://twitter.com/priyanshu_kamal)
 
 ---
-*Last Updated: April 2026 — NewsLabs v2.0.0*
+*Last Updated: April 2026 — NewsLabs v3.3.0*

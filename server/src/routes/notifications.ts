@@ -237,30 +237,19 @@ export async function notificationRoutes(server: FastifyInstance) {
         }
     });
 
-    // GET /api/notifications/logs — today's notification log
+    // GET /api/notifications/logs — returns last 3 days (72 hours) of briefs
     server.get('/logs', { preHandler: requireAuth }, async (request: FastifyRequest, reply: FastifyReply) => {
         const userId = (request as any).userId;
 
-        // Today's logs: from 5:30 AM IST of today
-        // 5:30 AM IST = 00:00 UTC (roughly — use exact offset)
-        const now = new Date();
-        const todayStart = new Date(now);
-
-        // Calculate start of today in IST (UTC+5:30)
-        // Set to UTC midnight which is 5:30 AM IST
-        todayStart.setUTCHours(0, 0, 0, 0);
-        // If current UTC time is before 00:00 UTC, we haven't hit 5:30 AM IST yet today
-        // so look at yesterday's 00:00 UTC as the boundary
-        if (now.getUTCHours() < 0) {
-            todayStart.setUTCDate(todayStart.getUTCDate() - 1);
-        }
+        // Fetch logs from the last 72 hours
+        const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
 
         const logs = await prisma.notificationLog.findMany({
             where: {
                 userId,
-                sentAt: { gte: todayStart },
+                sentAt: { gte: threeDaysAgo },
             },
-            orderBy: { sentAt: 'asc' },
+            orderBy: { sentAt: 'desc' },
         });
 
         // Parse JSON fields
@@ -280,13 +269,14 @@ export async function notificationRoutes(server: FastifyInstance) {
             errorMessage: log.errorMessage,
         }));
 
-        // Group scheduled slots by slot key; instant briefs get their own key per log ID
-        const slotOrder: SlotKey[] = ['morning', 'noon', 'evening', 'night'];
+        // Group scheduled slots by slot key AND date (to support 3 days of data)
         const grouped: Record<string, any> = {};
 
         for (const log of parsed) {
-            // Each instant brief is its own batch; scheduled slots are deduplicated by slot name
-            const key = log.slot === 'instant' ? `instant_${log.id}` : log.slot;
+            // Grouping key: scheduled slots are grouped by slot + date; instant briefs are always unique
+            const dateKey = new Date(log.sentAt).toISOString().split('T')[0];
+            const key = log.slot === 'instant' ? `instant_${log.id}` : `${log.slot}_${dateKey}`;
+            
             if (!grouped[key]) {
                 grouped[key] = {
                     slot: log.slot,
@@ -308,14 +298,12 @@ export async function notificationRoutes(server: FastifyInstance) {
             });
         }
 
-        // Scheduled slots first (in time order), then instant briefs newest-first
-        const scheduledResults = slotOrder.filter(s => grouped[s]).map(s => grouped[s]);
-        const instantResults = Object.keys(grouped)
-            .filter(k => k.startsWith('instant_'))
-            .map(k => grouped[k])
-            .sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime());
+        // Return all grouped logs sorted by sentAt desc
+        const sortedLogs = Object.values(grouped).sort((a, b) => 
+            new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime()
+        );
 
-        return { logs: [...scheduledResults, ...instantResults] };
+        return { logs: sortedLogs };
     });
 
     // POST /api/notifications/test — fire a test delivery right now

@@ -57,6 +57,7 @@ model UserFeed {
   displayName String
   category    String?
   isActive    Boolean  @default(true)
+  reliability Int      @default(5)
   addedAt     DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

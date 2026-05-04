@@ -9,7 +9,55 @@
 /* ── Design Tokens ──────────────────────────────────────────────────── */
 @layer base {
   :root {
-    /* ── Original dark theme (Dashboard / Profile) ── */
+    /* ── Light theme defaults (Home / Features) ── */
+    --background: 0 0% 100%;
+    --foreground: 220 20% 6%;
+
+    --card: 0 0% 98%;
+    --card-foreground: 220 20% 6%;
+
+    --popover: 0 0% 98%;
+    --popover-foreground: 220 20% 6%;
+
+    --primary: 195 100% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 260 80% 50%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 220 15% 90%;
+    --muted-foreground: 215 15% 40%;
+
+    --accent: 260 80% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --border: 220 15% 85%;
+    --input: 220 15% 85%;
+    --ring: 195 100% 40%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 220 20% 6%;
+    --sidebar-primary: 195 100% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 15% 90%;
+    --sidebar-accent-foreground: 220 20% 6%;
+    --sidebar-border: 220 15% 85%;
+    --sidebar-ring: 195 100% 40%;
+
+    --glass: 0 0% 100%;
+    --glass-border: 220 15% 85%;
+
+    /* Light mode Newsprint palette */
+    --np-paper: 60 20% 97%;   /* Light mode: Paper color */
+    --np-ink: 0 0% 7%;        /* Light mode: Ink color */
+    --np-red: 0 100% 40%;
+    --np-muted: 60 10% 89%;
+  }
+
+  .dark-mode {
+    /* ── Dark theme overrides (Dashboard / Profile) ── */
     --background: 220 20% 6%;
     --foreground: 210 40% 93%;
 
@@ -38,9 +86,6 @@
     --input: 220 15% 18%;
     --ring: 195 100% 50%;
 
-    /* Original radius — Dashboard uses rounded-xl, rounded-2xl etc. */
-    --radius: 0.75rem;
-
     --sidebar-background: 220 20% 8%;
     --sidebar-foreground: 210 40% 93%;
     --sidebar-primary: 195 100% 50%;
@@ -50,63 +95,17 @@
     --sidebar-border: 220 15% 18%;
     --sidebar-ring: 195 100% 50%;
 
-    /* Glass / glow tokens (Dashboard uses these) */
+    /* Glass / glow tokens */
     --glow-primary: 195 100% 50%;
     --glow-secondary: 260 80% 60%;
     --glass: 220 20% 12%;
     --glass-border: 220 15% 22%;
 
-    /* Newsprint palette — mapped to HSL values for opacity support */
+    /* Dark mode Newsprint palette */
     --np-paper: 0 0% 7%;      /* Dark mode: Ink color for paper */
     --np-ink: 60 20% 97%;     /* Dark mode: Paper color for ink */
     --np-red: 0 100% 40%;
     --np-muted: 0 0% 25%;     /* Dark mode: Darker divider */
-  }
-
-  .light-mode {
-    /* ── Light theme overrides for Dashboard / Profile ── */
-    --background: 0 0% 100%;
-    --foreground: 220 20% 6%;
-
-    --card: 0 0% 98%;
-    --card-foreground: 220 20% 6%;
-
-    --popover: 0 0% 98%;
-    --popover-foreground: 220 20% 6%;
-
-    --primary: 195 100% 40%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 260 80% 50%;
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 220 15% 90%;
-    --muted-foreground: 215 15% 40%;
-
-    --accent: 260 80% 50%;
-    --accent-foreground: 0 0% 100%;
-
-    --border: 220 15% 85%;
-    --input: 220 15% 85%;
-    --ring: 195 100% 40%;
-
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 220 20% 6%;
-    --sidebar-primary: 195 100% 40%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 15% 90%;
-    --sidebar-accent-foreground: 220 20% 6%;
-    --sidebar-border: 220 15% 85%;
-    --sidebar-ring: 195 100% 40%;
-
-    --glass: 0 0% 100%;
-    --glass-border: 220 15% 85%;
-
-    /* Light mode Newsprint overrides */
-    --np-paper: 60 20% 97%;   /* Light mode: Paper color */
-    --np-ink: 0 0% 7%;        /* Light mode: Ink color */
-    --np-red: 0 100% 40%;
-    --np-muted: 60 10% 89%;
   }
 }
 
@@ -203,12 +202,12 @@
   }
 
   /* ── Status Bar Custom Colors ── */
-  .status-bar-green { background-color: hsl(var(--np-paper)); }
-  .light-mode .status-bar-green { background-color: #ecfdf5; }
-  .status-bar-amber { background-color: hsl(var(--np-paper)); }
-  .light-mode .status-bar-amber { background-color: #fffbeb; }
-  .status-bar-red { background-color: hsl(var(--np-paper)); }
-  .light-mode .status-bar-red { background-color: #fef2f2; }
+  .status-bar-green { background-color: #ecfdf5; }
+  .dark-mode .status-bar-green { background-color: hsl(var(--np-paper)); }
+  .status-bar-amber { background-color: #fffbeb; }
+  .dark-mode .status-bar-amber { background-color: hsl(var(--np-paper)); }
+  .status-bar-red { background-color: #fef2f2; }
+  .dark-mode .status-bar-red { background-color: hsl(var(--np-paper)); }
 
   /* ── Original Dashboard utilities (restored) ── */
   .glass {

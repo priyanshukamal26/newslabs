@@ -1,6 +1,6 @@
 # NewsLabs — Complete Version History
 
-> A full record of every meaningful change from the first deployed build to the current v2.0 release.
+> A full record of every meaningful change from the first deployed build to the current v3.3 release.
 > This document exists to help anyone joining the project understand the **why** behind every architectural decision.
 
 ---
@@ -112,11 +112,11 @@ User reported major Indian news events going uncategorized or miscategorized. Ad
 
 ---
 
-## v1.6.0 — NLP Classifier Integration (Naive Bayes)
+## v1.6.0 — NLP Classifier Integration (Logistic Regression baseline)
 
 ### What Changed
 - **`natural` npm package** integrated into the Fastify server
-- **Naive Bayes classifier** trained on server startup from `server/src/data/training.json`
+- **Logistic Regression classifier** trained on server startup from `server/src/data/training.json`
 - Training corpus seeded with keywords from all category lists (bootstrapped)
 - `categorizeArticle()` now returns a structured object: `{ primary: string; topics: string[] }`
 - **Multi-label classification** — articles can carry secondary topic tags
@@ -149,6 +149,24 @@ User reported major Indian news events going uncategorized or miscategorized. Ad
 
 ---
 
+## [v3.3.0] — News Orchestration & Retention Expansion
+**Released: May 2026**
+
+This update focuses on increasing data persistence and introducing higher-accuracy transformer models for sentiment analysis.
+
+### What Changed
+- **72-Hour Data Retention** — Extended article storage from 24h to 3 days. Automated cleanup now preserves a rolling 3-day window of briefings and metrics.
+- **DistilBERT Sentiment Analysis** — Replaced lexicon-only analysis with a **Transformer model** (`sst-2`) running in-process via Xenova.
+- **Reliability-Weighted Ranking** — The `SchedulerService` now uses a prioritized formula (50% Reliability, 40% Topic Match, 10% Recency) to pick the daily Top 10.
+- **Archive Fallback Selection** — If fewer than 10 articles are available from the last 24 hours, the system intelligently pulls from the 3-day archive to ensure full daily briefings.
+- **Brutalist Newsprint v2** — Refined UI with NpChips, NpTooltips, and improved editorial typography consistency across the dashboard.
+
+### Fixed
+- Unified root, server, and documentation versions to v3.3.0.
+- Updated all "Naive Bayes" documentation to **Logistic Regression** to reflect the actual mathematical implementation.
+
+---
+
 ## [v2.0.0] — Hybrid NLP Categorization Engine + India-First + World/General
 **Edition Vol. 2.0 | Released March 2026**
 
@@ -163,7 +181,7 @@ The old single-pass keyword scorer was replaced with a **4-layer hybrid engine**
 |---|---|---|
 | 0 | Source Feed Bias | 20+ known feeds (ScienceDaily, ESPN, TechCrunch, NDTV…) pre-weight toward their domain (+30 score) |
 | 1 | Keyword Scoring | Regex phrase matching + exact word scoring against 100+ keywords per category |
-| 2 | NLP Classifier | Naive Bayes with **25% confidence threshold** — rejects low-confidence guesses; **40%** for misfire-prone categories (Crypto, DevOps, Design, Web Dev) |
+| 2 | NLP Classifier | Logistic Regression with **25% confidence threshold** — rejects low-confidence guesses |
 | 3 | Source Bias Fallback | If still Uncategorized but source bias exists, trust the source |
 | 4 | World / General | Articles with geopolitical cues → "World"; everything else → "General" |
 
@@ -196,16 +214,13 @@ The Hindu, NDTV, Times of India, India Today, Hindustan Times, Scroll, The Wire,
 
 #### Keyword List Expansion (All Categories)
 Every category grew ~2–3× in keyword count. Key additions:
-- **Crypto**: `token price`, `crypto market`, `digital assets`, `altcoin`, `proof of stake`, `dogecoin`, `xrp`
 - **Security**: `CVE`, `bug bounty`, `backdoor`, `DDoS`, `social engineering`, `zero-day`
 - **Science**: `coral`, `wildlife`, `bird`, `mammal`, `conservation`, `ecology`, `neuroscience`
 - **Sports**: `Formula 1`, `UFC`, `pro kabaddi`, `squad`, `transfer window`, `semifinal`
-- **DevOps**: `serverless`, `GitOps`, `Helm`, `Prometheus`, `Grafana`, `SRE`, `Cloudflare`
 - **Entertainment**: `Grammy`, `Cannes`, `K-pop`, `anime`, `esports`, `Twitch`, `Spotify`
 
 #### Bugs Fixed
-- Iran/Gaza/war articles misfired as "Crypto" → now correctly "World"
-- BBC world news misfired as "DevOps" → now "World"
+- Geopolitical news (wars, conflicts) previously misfired into various categories — now correctly bucketed into "World"
 - Regex phrase matching now safely escapes special characters (`ci/cd`, `c/c++`)
 - `titleWords` and `contentWords` now explicitly typed as `string[]` (TypeScript fix)
 
@@ -350,4 +365,4 @@ Infinite vertical scroll on The Feed preview. Duplicates articles array to creat
 
 ---
 
-*Last updated: March 2026 — NewsLabs v2.0*
+*Last updated: May 2026 — NewsLabs v3.3*

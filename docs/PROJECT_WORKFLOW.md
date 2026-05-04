@@ -76,8 +76,47 @@ NewsLabs features a 4-layer hybrid NLP engine for article categorization and ana
 
 1. **Layer 0: Source Bias**: Initial weighting based on the RSS feed's primary domain (e.g., ESPN -> Sports).
 2. **Layer 1: Keyword Scoring**: Matches title and content against a library of 100+ keywords per category.
-3. **Layer 2: NLP Classifier**: A Naive Bayes classifier trained on `datasets/news_data.json`. It only fires if confidence exceeds a threshold (0.25 for general, 0.40 for "soft" categories like Crypto/DevOps).
-4. **Layer 3: Catch-all**: Remaining articles are bucketed into `World` or `General`.
+3. **Layer 2: NLP Classifier**: A **TF-IDF + Logistic Regression** classifier trained on thousands of labeled examples. It only fires if confidence exceeds a threshold (typically 0.25). Accuracy is approx. 78.8%.
+4. **Layer 3: Catch-all**: Remaining articles are bucketed into `World Affairs` or `General`.
+
+---
+
+## 🔄 The Content & AI Lifecycle
+
+This section outlines the step-by-step journey of an article from ingestion to delivery.
+
+### 1. Data Ingestion
+- **Service**: `RssService` (`server/src/services/rss.ts`)
+- **Action**: Fetches raw XML from 30+ system feeds or custom user feeds.
+- **Optimization**: Uses `AbortController` (8s timeout) and fetches in **chunks of 4** to prevent server socket exhaustion.
+
+### 2. Store Injection & Deduplication
+- **Service**: `Store` (`server/src/services/store.ts`)
+- **Action**: Articles are deduplicated by URL and injected into the in-memory `Store` (max 5000 articles).
+- **Trigger**: New articles immediately trigger the `nlpService` for **Synchronous Enrichment**.
+
+### 3. Synchronous NLP Enrichment
+- **Service**: `NlpService` (`server/src/services/nlp.ts`)
+- **Classification**: Assigns a primary category (Technology, Business & Finance, World Affairs, etc.).
+- **Sentiment & Type**: Analyzes tone (-1 to +1) and flags "Opinion" vs "Factual" reports.
+- **Reliability**: Scores 0-100 based on source reputation and sensationalism signals.
+
+### 4. On-Demand Generative Analysis
+- **Trigger**: User clicks an article in the dashboard.
+- **Service**: `AiService` (`server/src/services/ai.ts`)
+- **Logic**: Performs deep summarization using Groq/Gemini (or BYOK). Returns JSON with `summary`, `insights`, and a `why` justification.
+
+### 5. Trending Discovery
+- **Action**: Every 2 seconds (on frontend poll), the system scans the titles of the last 50 articles.
+- **Mechanism**: Frequency analysis of word clusters to identify "Hot Topics" (e.g., "Nvidia Earnings" or "SpaceX Starship").
+
+### 6. Scheduled Brief Delivery
+- **Service**: `SchedulerService` (`server/src/services/scheduler.service.ts`)
+- **Cycle**: 4 times daily (06:00, 14:00, 18:00, 22:00 IST).
+- **Ranking**: Articles are scored via: **Reliability (50%) + Topic Match (40%) + Recency (10%)**.
+- **Dispatch**: Delivered via Telegram or Discord integration.
+
+---
 
 ### Analysis Features
 - **Sentiment Analysis**: Detects tone (Positive/Neutral/Negative) and provides intensity signals.
@@ -117,7 +156,8 @@ To test the automated news delivery:
 ## 🛠️ Common Troubleshooting
 
 - **Port Conflicts**: If port 3000 is busy, check `server/.env` and change `PORT`. Update Vite's proxy if changed.
-- **NLP Readiness**: If the health check shows `nlpClassifier: false`, the server is still training the model on startup. Wait 2-5 seconds.
+- **NLP Readiness**: If the health check shows `nlpClassifier: false`, the server is still loading the model weights. Wait 2-5 seconds.
+- **Category Mismatch**: Ensure feeds are mapped to the 9-category schema (`Technology`, `Business & Finance`, `World Affairs`, `Science & Space`, `Health`, `Sports`, `Entertainment`, `Climate & Environment`, `General`).
 - **Database Connection**: Ensure the Supabase instance is active. If using the transaction pooler (port 6543), append `?pgbouncer=true` to the connection string.
 
 ---
@@ -125,9 +165,9 @@ To test the automated news delivery:
 ## 📁 Key File Locations
 
 - **Backend Entry**: `server/src/server.ts`
-- **NLP Engine**: `server/src/services/nlp.service.ts`
+- **NLP Engine**: `server/src/services/nlp.ts`
 - **Route Definitions**: `server/src/routes/`
-- **AI Logic**: `server/src/services/ai.service.ts`
+- **AI Logic**: `server/src/services/ai.ts`
 - **Dashboard UI**: `src/pages/DashboardPage.tsx`
-- **API Service**: `src/services/api.ts`
+- **API Service**: `src/lib/api.ts`
 - **Database Schema**: `server/prisma/schema.prisma`

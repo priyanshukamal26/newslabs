@@ -5,12 +5,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [3.3.0] — News Orchestration & Retention Expansion
+**Date:** 2026-05-04
 
-### Planned
-- Trending topic click-to-filter (apply search from Trending Now panel)
-- Persistent article storage (database-backed, survives server restarts)
-- Naive Bayes model serialization (skip retraining on cold start)
+### Added
+- **72-Hour Data Retention** — Article logs and briefings are now preserved for 3 days (up from 24h), allowing users to catch up on long-weekend news.
+- **DistilBERT Sentiment Analysis** — Switched to a high-fidelity **Transformer model** (`sst-2`) via `@xenova/transformers` for primary sentiment detection.
+- **Reliability-Weighted Scheduler** — Automated briefings for Telegram and Discord now use a ranked 50/40/10 formula (Reliability / Topic / Recency).
+- **Archive Fallback Selection** — Scheduler now pulls from the 72-hour archive if recent (24h) news volume is insufficient (< 10 articles).
+- **Brutalist Newsprint UI v2** — Enhanced Dashboard with NpChips, NpTooltips, and high-contrast editorial styling.
+
+### Changed
+- **Classifier Upgrade** — Formally identified the Layer 2 engine as **TF-IDF + Logistic Regression** (replacing legacy Naive Bayes documentation).
+- **Version Alignment** — Unified root, server, and documentation versions to v3.3.0.
+
+### Fixed
+- Telegram/Discord selection logic now strictly respects user "Interests" weighting.
+- Article detail panel now correctly records "Read Time" in seconds for higher-precision analytics.
 
 ---
 
@@ -20,21 +31,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Hybrid NLP Categorization Engine v4** — 4-layer pipeline:
   1. Source Feed Bias (pre-weighted biases for 20+ known news sources)
   2. Keyword Scoring with regex phrase matching and acronym handling
-  3. Naive Bayes NLP classifier (via `natural` npm package) with a **25% confidence threshold** — rejects low-confidence guesses; stricter **40% threshold** for Crypto, DevOps, Design, Web Dev
+  3. Logistic Regression NLP classifier (via `natural` npm package) with a **25% confidence threshold** — rejects low-confidence guesses.
   4. `World` and `General` catch-all categories — zero articles left uncategorized
-- **`World` category** — captures geopolitical news (wars, conflicts, UN, diplomatic events) that previously misfired into Crypto/DevOps
+- **`World` category** — captures geopolitical news (wars, conflicts, UN, diplomatic events) that previously misfired.
 - **`General` category** — safe bucket for genuinely un-categorizable articles
 - **India-First keyword expansion** — India keyword list grew from 25 → **100+ keywords** organized into 8 field groups: Politics & Government, Judiciary & Law, States & Cities (all 28 states), Economy & Finance, Corporates & Brands, Sports, Culture & Society, Defence & Infrastructure
 - **16 Indian news source biases**: The Hindu, NDTV, Times of India, India Today, Hindustan Times, Scroll, The Wire, Republic TV, ABP News, Aaj Tak, News18, Zee News, and more
-- **Expanded keyword lists** for all 18 categories (~2–3× growth per category): Crypto (token price, digital assets, altcoin, proof of stake…), Security (CVE, bug bounty, backdoor, DDoS…), Science (ecology, coral, wildlife, bird…), Sports (F1, UFC, pro kabaddi, squad…), Entertainment (Grammy, Cannes, K-pop, anime…), DevOps (serverless, GitOps, Helm, SRE…), and more
+- **Expanded keyword lists** for all 9 categories (~2–3× growth per category): Science & Space (ecology, coral, wildlife, bird…), Sports (F1, UFC, pro kabaddi, squad…), Entertainment (Grammy, Cannes, K-pop, anime…), and more.
 - **NLP training corpus** expanded from 85 → **300+ labelled examples**, with 50 India-specific sentences and 20 new `World` examples
 - **`NLP Engine` status row** in the Status Dialog — Live health check via the `/health` endpoint's new `nlpClassifier` field
 - **`source name` passed to categorizer** — RSS feed title now flows into categorizeArticle to power source-bias at runtime
 
 ### Fixed
-- Iran/Gaza/war articles previously misfired as "Crypto" by low-confidence NLP — now correctly bucketed into "World"
-- General BBC world news articles previously misfired as "DevOps" — now "World"
-- Design category now matches via NLP even without exact keyword hits (ui design, user experience phrases)
+- Improved catch-all logic ensures no articles land in "Uncategorized".
 - Regex phrase matching now safely escapes special characters in keywords (e.g. `c/c++`, `ci/cd`)
 
 

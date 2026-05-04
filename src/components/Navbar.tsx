@@ -15,8 +15,7 @@ export function Navbar() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [isTogglingTheme, setIsTogglingTheme] = useState(false);
-  const { user, isAuthenticated, logout, updateUser } = useAuth();
+  const { user, isAuthenticated, logout, updateUser, isDarkMode, toggleTheme } = useAuth();
   const { services, isChecking, setDetailsOpen, checkHealth } = useStatus();
 
   // Close mobile menu on route change
@@ -24,19 +23,6 @@ export function Navbar() {
     setMobileOpen(false);
   }, [location.pathname]);
 
-  const toggleTheme = async () => {
-    if (!user) return;
-    setIsTogglingTheme(true);
-    try {
-        const newMode = !(user.darkMode ?? true); // Default dark
-        await api.put('/user/profile', { darkMode: newMode });
-        updateUser({ ...user, darkMode: newMode });
-    } catch (error) {
-        console.error("Failed to toggle theme", error);
-    } finally {
-        setIsTogglingTheme(false);
-    }
-  };
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -136,21 +122,18 @@ export function Navbar() {
               </button>
             </div>
             
-            {isAuthenticated && (
-              <button
-                onClick={toggleTheme}
-                disabled={isTogglingTheme}
-                title="Toggle Theme"
-                className={`w-8 h-8 flex items-center justify-center border border-ink text-neutral-500 transition-colors hover:text-paper hover:bg-ink mr-2`}
-                style={{ borderRadius: 0 }}
-              >
-                {user?.darkMode === false ? (
-                    <Moon className="h-4 w-4" />
-                ) : (
-                    <Sun className="h-4 w-4" />
-                )}
-              </button>
-            )}
+            <button
+              onClick={toggleTheme}
+              title="Toggle Theme"
+              className={`w-8 h-8 flex items-center justify-center border border-ink text-neutral-500 transition-colors hover:text-paper hover:bg-ink mr-2`}
+              style={{ borderRadius: 0 }}
+            >
+              {isDarkMode ? (
+                  <Sun className="h-4 w-4" />
+              ) : (
+                  <Moon className="h-4 w-4" />
+              )}
+            </button>
             {isAuthenticated ? (
               <button
                 onClick={() => setShowLogoutConfirm(true)}
