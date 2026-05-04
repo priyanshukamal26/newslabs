@@ -5,6 +5,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.4.0] — Feed Stability & Database Resilience
+**Date:** 2026-05-05
+
+### Added
+- **Global Feed Deduplication** — Implemented a robust article deduplication layer that filters duplicates across all sources before AI categorization.
+- **Prisma Singleton Architecture** — Consolidated database connections into a singleton pattern to prevent connection exhaustion and TLS handshaking overhead.
+- **OpenSSL 3.0 Compatibility** — Updated Prisma schema and engine configuration to support modern OpenSSL environments (specifically for Render production builds).
+
+### Changed
+- **Feed Ingestion Pipeline** — Optimized the feed refresh logic to use controlled concurrency, respecting API rate limits while maintaining high article throughput.
+- **NLP Service Hardening** — Improved error handling in the NLP classification pipeline to prevent feed stalls during high-volume periods.
+
+### Fixed
+- **Database TLS Errors** — Resolved persistent 500/503 errors caused by failed database SSL/TLS connections in production environments.
+- **Dashboard Feed Sync** — Fixed a race condition where the dashboard would occasionally show stale data after a manual refresh.
+
+---
+
 ## [3.3.0] — News Orchestration & Retention Expansion
 **Date:** 2026-05-04
 

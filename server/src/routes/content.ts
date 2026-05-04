@@ -49,7 +49,7 @@ const sourceBias: Record<string, string> = {
     "india today": "India",
 };
 
-const NLP_CONFIDENCE_THRESHOLD = 0.25;
+const NLP_CONFIDENCE_THRESHOLD = 0.4;
 const NLP_SOFT_CATEGORIES = new Set([]);
 const NLP_SOFT_THRESHOLD = 0.40;
 
@@ -58,11 +58,11 @@ const NLP_SOFT_THRESHOLD = 0.40;
 // The categoryKeywords map above is still used for secondary tag extraction
 // inside nlpService itself (keyword fallback + secondary tag derivation).
 
-function categorizeArticle(
+function categorizeArticleLocal(
     title: string,
     contentStr?: string,
     sourceName?: string
-): { primary: string; topics: string[]; confidence: number; secondaryTags: string[]; classificationSignals: string[] } {
+): { primary: string; topics: string[]; confidence: number; secondaryTags: string[]; classificationSignals: string[]; method: 'local' | 'api' } {
     const result = nlpService.classifyArticle(title, contentStr || '', sourceName);
     return {
         primary: result.primary,
@@ -70,6 +70,7 @@ function categorizeArticle(
         confidence: result.confidence,
         secondaryTags: result.secondaryTags,
         classificationSignals: result.classificationSignals || [],
+        method: result.method,
     };
 }
 
@@ -99,99 +100,136 @@ export async function contentRoutes(server: FastifyInstance) {
 
 
     const updateFeeds = async (feedSources: Array<{ url: string; sourceType: 'system' | 'user'; userId?: string; category?: string | null; reliability?: number }>) => {
-        const feeds = feedSources;
         const newArticleIds: string[] = [];
+        const allItems: Array<{ item: any; source: typeof feedSources[0] }> = [];
 
-        const results = [];
-        const chunkSize = 4; // Fetch feeds in chunks of 4 to prevent DNS timeout and socket exhaustion
-        
-        for (let i = 0; i < feeds.length; i += chunkSize) {
-            const chunk = feeds.slice(i, i + chunkSize);
-            const chunkPromises = chunk.map(async (feedSource) => {
+        // 1. Fetch all feeds in parallel chunks
+        const chunkSize = 5;
+        for (let i = 0; i < feedSources.length; i += chunkSize) {
+            const chunk = feedSources.slice(i, i + chunkSize);
+            const chunkPromises = chunk.map(async (src) => {
                 try {
-                    console.log(`[updateFeeds] Fetching ${feedSource.url}`);
-                    const items = await rssService.fetchFeed(feedSource.url);
-                    console.log(`[updateFeeds] Received ${items.length} from ${feedSource.url}`);
-                    return { feedSource, items, status: 'fulfilled' as const };
-                } catch (error) {
-                    console.log(`[updateFeeds] Exception on ${feedSource.url}`, error);
-                    return { feedSource, error, status: 'rejected' as const };
+                    const items = await rssService.fetchFeed(src.url);
+                    return { src, items };
+                } catch (e) {
+                    console.log(`[updateFeeds] Fetch failed for ${src.url}`);
+                    return null;
                 }
             });
-            const chunkResults = await Promise.allSettled(chunkPromises);
-            results.push(...chunkResults);
-            
-            // tiny delay between chunks just to be safe
-            if (i + chunkSize < feeds.length) {
-                await delay(300);
-            }
-        }
-
-        for (const result of results) {
-            if (result.status === 'fulfilled' && result.value.status === 'fulfilled') {
-                const items = result.value.items;
-                const feedSource = result.value.feedSource;
-                for (const item of items) {
-                    const exists = store.getArticles().find(a => a.link === item.link);
-                    if (!exists) {
-                        const id = uuidv4();
-                        const timeToRead = calculateReadingTime(item.contentSnippet || item.content || '');
-                        const feedTitle = (items as any)?.feedTitle || (items as any)?.[0]?.feedTitle || '';
-                        const text = item.title || '';
-                        const body = item.contentSnippet || item.content || '';
-
-                        // NLP enrichment (async/sync mix)
-                        const classification = categorizeArticle(text, body, feedTitle);
-                        const sentimentResult = await nlpService.analyzeSentiment(`${text} ${body}`);
-                        const opinionResult = nlpService.detectOpinionVsFact(text, body);
-                        const reliabilityResult = nlpService.scoreReliability(text, body, feedTitle || item.source || '', item.pubDate, feedSource.reliability);
-
-                        let biasIndicator: 'Neutral' | 'Slightly Opinionated' | 'Strongly Opinionated' = 'Neutral';
-                        if (opinionResult.type === 'Opinion') {
-                            biasIndicator = opinionResult.confidence > 0.75 ? 'Strongly Opinionated' : 'Slightly Opinionated';
-                        } else if (sentimentResult.score < -0.5 || sentimentResult.score > 0.5) {
-                            biasIndicator = 'Slightly Opinionated';
-                        }
-
-                        store.addArticle({
-                            ...item,
-                            id,
-                            summary: "Click to analyze",
-                            topic: classification.primary,
-                            topics: classification.topics,
-                            why: "Pending analysis",
-                            insights: [],
-                            timeToRead,
-                            likes: 0,
-                            categorizing: false,
-                            sourceType: feedSource.sourceType,
-                            sourceUrl: feedSource.url,
-                            sourceOwnerUserId: feedSource.sourceType === 'user' ? (feedSource.userId || null) : null,
-                            feedCategory: feedSource.category || null,
-                            // NLP fields
-                            sentiment: sentimentResult.sentiment,
-                            sentimentScore: sentimentResult.score,
-                            sentimentSignals: sentimentResult.signals,
-                            articleType: opinionResult.type,
-                            articleTypeConfidence: opinionResult.confidence,
-                            opinionSignals: opinionResult.signals,
-                            reliability: reliabilityResult.score,
-                            reliabilityTier: reliabilityResult.tier,
-                            reliabilitySignals: reliabilityResult.signals,
-                            classificationConfidence: classification.confidence,
-                            secondaryTags: classification.secondaryTags,
-                            primaryCategory: classification.primary,
-                            classificationSignals: classification.classificationSignals,
-                            biasIndicator,
-                        } as Article);
-                        newArticleIds.push(id);
-                    } else {
-                        // Optionally debug log why it might be skipped
-                        // console.log("Skipped duplicate link", item.link);
-                    }
+            const chunkResults = await Promise.all(chunkPromises);
+            for (const res of chunkResults) {
+                if (res) {
+                    res.items.forEach(item => allItems.push({ item, source: res.src }));
                 }
             }
+            if (i + chunkSize < feedSources.length) await delay(200);
         }
+
+        // 2. Deduplicate
+        const seenLinks = new Set(store.getArticles().map(a => a.link));
+        const uniqueItems = allItems.filter(entry => {
+            if (seenLinks.has(entry.item.link)) return false;
+            seenLinks.add(entry.item.link);
+            return true;
+        });
+
+        console.log(`[updateFeeds] Local classification for ${uniqueItems.length} unique articles.`);
+
+        // 3. Local Classification & Enrichment
+        const lowConfidenceArticles: Array<{ article: Article; index: number }> = [];
+        const processedArticles: Article[] = [];
+
+        for (const entry of uniqueItems) {
+            const { item, source } = entry;
+            const id = uuidv4();
+            const text = item.title || '';
+            const body = item.contentSnippet || item.content || '';
+            const feedTitle = (item as any)?.feedTitle || '';
+
+            const classification = categorizeArticleLocal(text, body, feedTitle);
+            const sentimentResult = await nlpService.analyzeSentiment(`${text} ${body}`);
+            const opinionResult = nlpService.detectOpinionVsFact(text, body);
+            const reliabilityResult = nlpService.scoreReliability(text, body, feedTitle || item.source || '', item.pubDate, source.reliability);
+
+            let biasIndicator: 'Neutral' | 'Slightly Opinionated' | 'Strongly Opinionated' = 'Neutral';
+            if (opinionResult.type === 'Opinion') {
+                biasIndicator = opinionResult.confidence > 0.75 ? 'Strongly Opinionated' : 'Slightly Opinionated';
+            } else if (sentimentResult.score < -0.5 || sentimentResult.score > 0.5) {
+                biasIndicator = 'Slightly Opinionated';
+            }
+
+            const article: Article = {
+                ...item,
+                id,
+                summary: "Click to analyze",
+                topic: classification.primary,
+                topics: classification.topics,
+                why: "Pending analysis",
+                insights: [],
+                timeToRead: calculateReadingTime(body),
+                likes: 0,
+                categorizing: false,
+                sourceType: source.sourceType,
+                sourceUrl: source.url,
+                sourceOwnerUserId: source.sourceType === 'user' ? (source.userId || null) : null,
+                feedCategory: source.category || null,
+                sentiment: sentimentResult.sentiment,
+                sentimentScore: sentimentResult.score,
+                sentimentSignals: sentimentResult.signals,
+                articleType: opinionResult.type,
+                articleTypeConfidence: opinionResult.confidence,
+                opinionSignals: opinionResult.signals,
+                reliability: reliabilityResult.score,
+                reliabilityTier: reliabilityResult.tier,
+                reliabilitySignals: reliabilityResult.signals,
+                classificationConfidence: classification.confidence,
+                secondaryTags: classification.secondaryTags,
+                primaryCategory: classification.primary,
+                classificationSignals: classification.classificationSignals,
+                classificationMethod: classification.method,
+                biasIndicator,
+            };
+
+            if (classification.confidence < 0.4) {
+                lowConfidenceArticles.push({ article, index: processedArticles.length });
+            }
+            processedArticles.push(article);
+        }
+
+        // 4. Batch AI Categorization (Title Only)
+        if (lowConfidenceArticles.length > 0) {
+            console.log(`[updateFeeds] Batch categorizing ${lowConfidenceArticles.length} low-confidence articles.`);
+            const batchSize = 20;
+            for (let i = 0; i < lowConfidenceArticles.length; i += batchSize) {
+                const batch = lowConfidenceArticles.slice(i, i + batchSize);
+                const titles = batch.map(b => b.article.title || '');
+                
+                try {
+                    const categories = await aiService.categorizeBatch(titles);
+                    batch.forEach((b, idx) => {
+                        const newCat = categories[idx] || 'General';
+                        if (newCat !== 'General') {
+                            b.article.topic = newCat;
+                            b.article.primaryCategory = newCat;
+                            b.article.topics = [newCat, ...(b.article.secondaryTags || [])];
+                            b.article.classificationMethod = 'api';
+                            b.article.classificationConfidence = 0.95;
+                            b.article.classificationSignals = ['AI-Assisted'];
+                        }
+                    });
+                } catch (err) {
+                    console.error('[updateFeeds] Batch AI failed', err);
+                }
+                
+                if (i + batchSize < lowConfidenceArticles.length) await delay(1000);
+            }
+        }
+
+        // 5. Add to store
+        processedArticles.forEach(a => {
+            store.addArticle(a);
+            newArticleIds.push(a.id);
+        });
 
         if (newArticleIds.length > 0) {
             console.log(`[NLP] Enriched ${newArticleIds.length} new articles.`);

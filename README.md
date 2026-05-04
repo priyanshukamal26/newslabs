@@ -2,7 +2,7 @@
 
 ### **Elevate Your Intelligence with AI-Powered News Orchestration**
 
-[![Version](https://img.shields.io/badge/version-3.3.3-blue.svg?style=for-the-badge)](https://github.com/priyanshukamal26/newslabs)
+[![Version](https://img.shields.io/badge/version-3.4.0-blue.svg?style=for-the-badge)](https://github.com/priyanshukamal26/newslabs)
 [![License](https://img.shields.io/badge/license-ISC-green.svg?style=for-the-badge)](LICENSE)
 [![Built With](https://img.shields.io/badge/Built%20With-React%20%26%20Fastify-orange.svg?style=for-the-badge)](https://react.dev/)
 [![AI Powered](https://img.shields.io/badge/AI-Gemini%20%7C%20Groq%20%7C%20Ollama-purple.svg?style=for-the-badge)](https://ai.google.dev/)

@@ -56,6 +56,7 @@ export interface Article {
     secondaryTags?: string[];
     primaryCategory?: string;
     classificationSignals?: string[];
+    classificationMethod?: 'local' | 'api';
     biasIndicator?: 'Neutral' | 'Slightly Opinionated' | 'Strongly Opinionated';
 }
 

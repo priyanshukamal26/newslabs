@@ -58,10 +58,14 @@ function timeAgo(dateStr?: string): string {
 }
 
 /* ── Tiny primitives ────────────────────────────────────────────────── */
-function NpChip({ children, active = false }: { children: React.ReactNode; active?: boolean }) {
+function NpChip({ children, active = false, variant = 'red' }: { children: React.ReactNode; active?: boolean; variant?: 'red' | 'purple' }) {
+  const activeClass = variant === 'purple' 
+    ? "border-secondary text-secondary shadow-[0_0_8px_-2px_hsl(var(--secondary))]" 
+    : "border-editorial-red text-editorial-red";
+    
   return (
     <span
-      className={`text-[9px] font-bold uppercase tracking-[0.2em] px-1.5 py-0.5 border ${active ? "border-editorial-red text-editorial-red" : "border-divider-grey text-neutral-500"}`}
+      className={`text-[9px] font-bold uppercase tracking-[0.2em] px-1.5 py-0.5 border ${active ? activeClass : "border-divider-grey text-neutral-500"}`}
       style={mono}
     >
       {children}
@@ -162,13 +166,16 @@ function NpReliabilityBadge({ tier, score, signals }: { tier?: string; score?: n
   );
 }
 
-function NpConfidenceBadge({ confidence, signals }: { confidence?: number, signals?: string[] }) {
+function NpConfidenceBadge({ confidence, signals, method }: { confidence?: number, signals?: string[], method?: 'local' | 'api' }) {
   if (confidence === undefined) return null;
   const pct = Math.round(confidence * 100);
+  const isApi = method === 'api';
   const sigText = signals && signals.length > 0 ? ` Reason: ${signals.join(', ')}.` : '';
+  const methodText = isApi ? " (AI Hybrid Fallback)" : " (Local Model)";
+  
   return (
-    <NpTooltip tip={`Model confidence: ${pct}%`} detail={`The TF-IDF + Logistic Regression classifier's certainty about the assigned category.${sigText}`}>
-      <span className="text-[9px] font-bold tracking-[0.12em] text-neutral-500 border border-dashed border-neutral-300 px-1.5 py-0.5 cursor-help" style={mono}>
+    <NpTooltip tip={`Model confidence: ${pct}%${methodText}`} detail={`The ${isApi ? 'LLM API' : 'TF-IDF + Logistic Regression'} classifier's certainty about the assigned category.${sigText}`}>
+      <span className={`text-[9px] font-bold tracking-[0.12em] border border-dashed px-1.5 py-0.5 cursor-help ${isApi ? 'text-secondary border-secondary/50 bg-secondary/5' : 'text-neutral-500 border-neutral-300'}`} style={mono}>
         {pct}%
       </span>
     </NpTooltip>
@@ -767,7 +774,7 @@ export default function DashboardPage() {
                       animate={{ opacity: 1 }}
                       transition={{ delay: Math.min(i * 0.015, 0.4) }}
                       onClick={() => setSelectedArticle(article)}
-                      className={`bg-paper cursor-pointer group transition-colors hover:bg-ink/5 ${viewMode === "list" ? "px-5 py-4" : "p-4"}`}
+                      className={`bg-paper cursor-pointer group transition-all duration-300 hover:bg-ink/5 ${viewMode === "list" ? "px-5 py-4" : "p-4"} ${article.classificationMethod === 'api' ? 'border-l-4 border-secondary shadow-[inset_4px_0_12px_-6px_hsl(var(--secondary)/0.3)]' : ''}`}
                     >
                       <div className="flex items-center gap-2 mb-2 flex-wrap">
                         {article.categorizing ? (
@@ -778,13 +785,13 @@ export default function DashboardPage() {
                             {article.primaryCategory && article.topic && article.topic !== article.primaryCategory ? (
                               <NpTooltip tip="Category hierarchy" detail={`Super-category from AI model: ${article.primaryCategory}. Sub-category from AI analysis: ${article.topic}.`}>
                                 <span className="flex items-center gap-1 cursor-help">
-                                  <NpChip active>{article.primaryCategory}</NpChip>
+                                  <NpChip active variant={article.classificationMethod === 'api' ? 'purple' : 'red'}>{article.primaryCategory}</NpChip>
                                   <span className="text-[9px] text-neutral-400" style={mono}>›</span>
-                                  <NpChip>{article.topic}</NpChip>
+                                  <NpChip variant={article.classificationMethod === 'api' ? 'purple' : 'red'}>{article.topic}</NpChip>
                                 </span>
                               </NpTooltip>
                             ) : (
-                              <NpChip active>{article.topic || "News"}</NpChip>
+                              <NpChip active variant={article.classificationMethod === 'api' ? 'purple' : 'red'}>{article.topic || "News"}</NpChip>
                             )}
                           </>
                         )}

@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { aiService } from './ai';
 import { sentimentService, SentimentResult as AiSentimentResult } from '../ai/services/sentiment';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -17,6 +18,7 @@ export interface ClassificationResult {
     primary: PrimaryCategory;
     confidence: number;       // 0–1
     secondaryTags: string[];
+    method: 'local' | 'api';
     classificationSignals?: string[];
 }
 
@@ -335,6 +337,7 @@ class NlpService {
         let primary: PrimaryCategory;
         let confidence: number;
         let classificationSignals: string[] = [];
+        let method: 'local' | 'api' = 'local';
 
         if (this.model && this.status === 'ready' && tokens.length > 0) {
             const vec = tfidfTransform(tokens, this.model);
@@ -354,6 +357,7 @@ class NlpService {
             primary: indiaResult.primary,
             confidence: Math.round(confidence * 1000) / 1000,
             secondaryTags: indiaResult.secondaryTags,
+            method,
             classificationSignals,
         };
     }

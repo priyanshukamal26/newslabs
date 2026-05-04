@@ -31,6 +31,7 @@ export interface Article extends FeedItem {
     secondaryTags?: string[];
     primaryCategory?: string;   // stable NLP model category (never overwritten by AI)
     classificationSignals?: string[];
+    classificationMethod?: 'local' | 'api';
     biasIndicator?: 'Neutral' | 'Slightly Opinionated' | 'Strongly Opinionated';
 }
 

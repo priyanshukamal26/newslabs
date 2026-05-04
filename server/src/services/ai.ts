@@ -432,10 +432,37 @@ export class AiService {
         }
     }
 
-    async categorize(title: string, snippet: string): Promise<{ topic: string; timeToRead: string }> {
-        const wordCount = (snippet || title || '').split(/\s+/).length;
-        const minutes = Math.max(1, Math.ceil(wordCount / 200));
-        return { topic: 'Uncategorized', timeToRead: `${minutes} min` };
+    async categorizeBatch(titles: string[]): Promise<string[]> {
+        if (titles.length === 0) return [];
+        
+        const categories = "Technology, Business & Finance, World Affairs, Science & Space, Health, Sports, Entertainment, Climate & Environment, General";
+        const prompt = `Categorize these ${titles.length} news headlines into exactly one of these categories: [${categories}].
+
+Headlines:
+${titles.map((t, i) => `${i + 1}. ${t}`).join('\n')}
+
+Return ONLY a JSON array of strings (the category names) in the same order as the headlines. No other text.`;
+
+        try {
+            const response = await this.chatStrict(prompt, { 
+                timeoutMs: 15000,
+                model: this.systemGroqKey ? 'llama-3.1-8b-instant' : 'gemini-2.0-flash' 
+            });
+            
+            const cleaned = response.trim().replace(/```json\n?|```/g, '');
+            const parsed = JSON.parse(cleaned);
+            
+            if (Array.isArray(parsed)) {
+                return parsed.map(res => {
+                    const matched = categories.split(', ').find(c => res.toLowerCase().includes(c.toLowerCase()));
+                    return matched || 'General';
+                });
+            }
+            return titles.map(() => 'General');
+        } catch (error) {
+            console.error('[AI] Batch categorization failed:', error);
+            return titles.map(() => 'General');
+        }
     }
 
     async analyzeTrending(articleTitles: string[]): Promise<string[]> {
